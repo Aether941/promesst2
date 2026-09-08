@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROMESST 2 · 源码导读</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    /* 略调主题色,呼应游戏紫/橙配色 */
+    :root{
+      --theme-color:#b07cff;
+      --theme-color-dark:#8f5ce0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.$docsify = {
+      name: 'PROMESST 2 · 源码导读',
+      nameLink: '/',
+      repo: '',
+      loadSidebar: true,
+      subMaxLevel: 3,
+      maxLevel: 4,
+      coverpage: true,
+      auto2top: true,
+      themeColor: '#b07cff',
+      search: {
+        placeholder: '搜索(函数 / 行号 / 关键字)',
+        noData: '没有匹配结果',
+        depth: 4
+      },
+      formatUpdated: '{YYYY}-{MM}-{DD}',
+      alias: {
+        '/_coverpage': '/_coverpage.md'
+      }
+    };
+  </script>
+  <!-- docsify 核心(CDN script 引入) -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <!-- 搜索插件 -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <!-- 代码高亮插件(可选) -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/prismjs.min.js"></script>
+</body>
+</html>
