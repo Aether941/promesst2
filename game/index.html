@@ -55,6 +55,7 @@
   <span class="badge">步数 <b id="bsteps">0</b></span>
   <span class="sp"></span>
   <label class="chk"><input type="checkbox" id="ckFollow" checked>跟随玩家</label>
+  <label class="chk"><input type="checkbox" id="ckGrid">房间网格</label>
   <button class="btn" id="btnFit">适配窗口</button>
   <button class="btn" id="btnZo">−</button>
   <button class="btn" id="btnZi">＋</button>
@@ -65,8 +66,8 @@
 
 <div id="info">
   <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 ·
-  <kbd>#</kbd> 楼梯切层 · 操作说明见 <code>readme2.txt</code> 风格提示:
-  红色光束=开门 / 绿色=穿墙 / 黄色=碎石 / 橙色=双步 / 紫色=沿光束远行 —— <b>能力系统在 M3 启用</b>,当前为“无能力”碰撞。
+  <kbd>#</kbd> = 楼梯(两层之间的阶梯,踩上去即切层,同坐标上下楼) ·
+  能力系统在 M3 启用,当前为“无能力”碰撞(门/石块等均被挡)。出生点:Z0 (12,20)。
 </div>
 
 <script src="./map-data.js"></script>

@@ -52,44 +52,22 @@ var FEATURE_ROVER=false;   // M4 打开
 // ---------- 数据与采样 ----------
 var RAW=window.PROMESST_MAP_RAW;
 var ATLAS=128, CELL=16, img=null, imgData=null;
-var roomPalette=null, powers=null;
+var powers=null;           // 8 种能力色(取样自精灵表,供 M3 光束)
 var tileCache={};
 
 function sample(x,y){
   var i=(y*ATLAS+x)*4;
   return [imgData.data[i],imgData.data[i+1],imgData.data[i+2],imgData.data[i+3]];
 }
-function computePalette(){
-  roomPalette=[]; powers=[];
+function computePowers(){
+  powers=[];
   for(var i=0;i<8;i++) powers.push(sample(112+i,96));
-  for(var z=0;z<2;z++){
-    roomPalette[z]=[];
-    for(var ry=0;ry<NY;ry++){
-      roomPalette[z][ry]=[];
-      for(var rx=0;rx<NX;rx++) roomPalette[z][ry].push(sample(120+rx,96+ry+(z?8:0)));
-    }
-  }
 }
 function cellFrom(s,t){
   var key="c_"+s+"_"+t, c=tileCache[key];
   if(!c){ c=document.createElement("canvas"); c.width=CELL; c.height=CELL;
           c.getContext("2d").drawImage(img, s*CELL,t*CELL,CELL,CELL, 0,0,CELL,CELL);
           tileCache[key]=c; }
-  return c;
-}
-function tintedCell(s,t,tint){
-  if(!tint) return cellFrom(s,t);
-  var key="t_"+s+"_"+t+"_"+tint[0]+","+tint[1]+","+tint[2];
-  var c=tileCache[key];
-  if(!c){
-    c=document.createElement("canvas"); c.width=CELL; c.height=CELL;
-    var cx=c.getContext("2d");
-    cx.drawImage(cellFrom(s,t),0,0);
-    cx.globalCompositeOperation="multiply";
-    cx.fillStyle="rgb("+tint[0]+","+tint[1]+","+tint[2]+")";
-    cx.fillRect(0,0,CELL,CELL);
-    tileCache[key]=c;
-  }
   return c;
 }
 
@@ -337,14 +315,13 @@ function render(){
     var rx=(x/SX)|0, ry=(y/SY)|0;
     var sp=TILE_SPR[t];
     if(t===T.wall && ((rx^ry)&1)) sp=[7,0];
-    var tint=roomPalette[z][ry][rx];
-    ctx.drawImage(tintedCell(sp[0],sp[1],tint), x*K,y*K,K,K);
+    ctx.drawImage(cellFrom(sp[0],sp[1]), x*K,y*K,K,K);
     if(t>=T.floor){
       var chk=[ [x+1,y,1,0],[x-1,y,3,0],[x,y+1,4,0],[x,y-1,2,0] ];
       for(i=0;i<4;i++){
         var mx=((chk[i][0])%WW+WW)%WW, my=((chk[i][1])%WH+WH)%WH;
         if(world.tile[z][my][mx]===T.wall)
-          ctx.drawImage(tintedCell(chk[i][2],chk[i][3],roomPalette[z][ry][rx]), x*K,y*K,K,K);
+          ctx.drawImage(cellFrom(chk[i][2],chk[i][3]), x*K,y*K,K,K);
       }
     }
   }
@@ -364,9 +341,11 @@ function render(){
     if(oc) ctx.drawImage(oc, x*K,y*K,K,K);
   }
 
-  // 房间网格
+  // 房间网格(开关在顶栏)
   if(showGrid){
-    ctx.strokeStyle="rgba(255,255,255,0.16)"; ctx.lineWidth=1; ctx.beginPath();
+    ctx.strokeStyle="rgba(255,255,255,0.55)";
+    ctx.lineWidth=Math.max(1,Math.floor(k*0.5));
+    ctx.beginPath();
     for(x=0;x<=NX;x++){ var gx=x*SX*K; ctx.moveTo(gx+0.5,0); ctx.lineTo(gx+0.5,WH*K); }
     for(y=0;y<=NY;y++){ var gy=y*SY*K; ctx.moveTo(0,gy+0.5); ctx.lineTo(WW*K,gy+0.5); }
     ctx.stroke();
@@ -450,6 +429,7 @@ byId("btnZo").addEventListener("click",function(){ autoFit=false; zoomK=Math.max
 byId("btnZi").addEventListener("click",function(){ autoFit=false; zoomK=Math.min(4,zoomK+1); resizeCanvas(); });
 byId("btnRestart").addEventListener("click",function(){ reset(); resizeCanvas(); render(); });
 byId("ckFollow").addEventListener("change",function(e){ follow=e.target.checked; centerPlayer(); });
+byId("ckGrid").addEventListener("change",function(e){ showGrid=e.target.checked; });
 window.addEventListener("resize",function(){ if(autoFit) resizeCanvas(); });
 
 // ---------- 主循环(rAF + 16ms 步进) ----------
@@ -475,7 +455,7 @@ function err(msg){ var e=byId("err"); e.style.display="block"; e.textContent=msg
         var tmp=document.createElement("canvas"); tmp.width=ATLAS; tmp.height=ATLAS;
         var tc=tmp.getContext("2d"); tc.drawImage(img,0,0);
         imgData=tc.getImageData(0,0,ATLAS,ATLAS);
-        computePalette();
+        computePowers();
         reset();
         resizeCanvas();
         render();
