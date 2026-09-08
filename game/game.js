@@ -1,10 +1,9 @@
 "use strict";
 /* ============================================================
    PROMESST 2 网页版移植 — game.js
-   里程碑 M2:移动 / 碰撞 / 整幅地图 / 缩放 / 计时器骨架
+   当前里程碑:M4(宝石拾放 V / Rover 自主移动 / 供电随放置刷新)
    设计源:docs-map-port/README.md v4;规则基准 main.c(2014)
-   说明:能力系统(光束)与 rover 在本里程碑未启用(FEATURE_LIGHT=false),
-        getAbilities() 恒为 0,因此碰撞退化为“无能力”语义。
+   FEATURE_LIGHT / FEATURE_ROVER 均已启用。
    ============================================================ */
 
 // ---------- 常量(与 main.c 一致) ----------
@@ -48,7 +47,7 @@ var CCOL =["#ff6b6b","#59e06a","#5aa9ff","#ff9d5c","#ffe66d","#b07cff","#5ee8d8"
 
 // ---------- 里程碑特性开关 ----------
 var FEATURE_LIGHT=true;    // M3:供电+光束+能力 已启用
-var FEATURE_ROVER=false;   // M4 打开
+var FEATURE_ROVER=true;    // M4:Rover 自主移动 + V 宝石拾放 已启用
 
 // ---------- 数据与采样 ----------
 var RAW=window.PROMESST_MAP_RAW;
@@ -193,6 +192,10 @@ var q=null;                   // 排队按键(单槽,同 C queued_key)
 var held=[];                  // 按住中的移动键(最近优先)
 var checkpoint=null;
 
+// M4:Rover / 喂食计时(常量与 C 一致)
+var MAX_GEMS=30, ROVER_MS=630, FEED_MS=1200, REVERSE_MS=1100;
+var rover_timer=0, feed_timer=0, reverse_timer=-1;
+
 function copyWorld(){
   var c={tile:[], obj:[]};
   for(var z=0;z<2;z++){
@@ -215,6 +218,7 @@ function reset(){
   game.ability_flag=0; game.num_gems=0; game.gems_stored=-1;
   game.has_wand=false; game.num_zaps=0; game.egg_timer=0; game.steps=0;
   q=null; held=[]; checkpoint=null;
+  rover_timer=0; feed_timer=0; reverse_timer=-1;
   lightCache=[null,null]; lightDirty=true;
   onViewChanged(true);
 }
@@ -437,8 +441,111 @@ function snapshotState(){
   };
 }
 
-// ---------- 计时器步进(移植 timestep 子集;完整版随 M4–M6 扩充) ----------
+// V 键:宝石拾取 / 放置(移植 drop(),L855–874:捡宝石或放回底座)
+function drop(){
+  var z=game.pz, x=game.px, y=game.py;
+  var o=world.obj[z][y][x];
+  if(o.type===O.gem){                 // 站在宝石上 → 拾起
+    o.type=O.empty;
+    game.num_gems++;
+  } else if(game.num_gems>0 && o.type===O.empty &&
+            world.tile[z][y][x]===T.recep){   // 携带宝石且脚下是空底座 → 放入
+    game.num_gems--;
+    o.type=O.gem; o.dir=1;            // dir=1:变色动画宝石
+  } else return false;
+  lightDirty=true;                    // 供电/光束随之变化
+  return true;
+}
+
+// ---------- Rover(移植 move_rovers 体系,L1093–1218;同房同步,单/多只通用) ----------
+function roverCanEnter(z,cx,cy,allowGem){
+  if(cx<0||cx>=WW||cy<0||cy>=WH) return false;
+  var t=world.tile[z][cy][cx];
+  if(t===T.wall||t===T.door) return false;
+  var o=world.obj[z][cy][cx];
+  if(o.type===O.gem) return allowGem;
+  return o.type===O.empty;
+}
+// rover 首选方向:反转期(reverse>0)保持直行;否则踩箭头按箭头,被堵尝试掉头
+function roverDir(z,rover,cx,cy){
+  var d=rover.dir;
+  if(reverse_timer>0) return d;
+  var tt=world.tile[z][cy][cx];
+  if(tt>=T.arrow_e && tt<T.arrow_e+4) d=tt-T.arrow_e;
+  if(roverCanEnter(z,cx+XD[d],cy+YD[d],true)) return d;
+  var d2=(d+2)&3;
+  if(d2!==d && roverCanEnter(z,cx+XD[d2],cy+YD[d2],true)) return d2;
+  return -1;
+}
+// 驱动玩家所在层的所有房间(每 630ms 一次,同 C 只跑 pz 层)
+function stepRovers(){
+  var z=game.pz;
+  // 反转计时到 0:首只 rover 调头 180° 并恢复箭头逻辑(照 C L1168–1171/L1216–1217)
+  if(reverse_timer===0){
+    outer:
+    for(var ry=0;ry<NY;ry++) for(var rx=0;rx<NX;rx++)
+      for(var yy=0;yy<SY;yy++) for(var xx=0;xx<SX;xx++){
+        var o0=world.obj[z][ry*SY+yy][rx*SX+xx];
+        if(o0.type===O.rover){ o0.dir=(o0.dir+2)&3; break outer; }
+      }
+    reverse_timer=-1;
+  }
+  var rx2,ry2;
+  for(ry2=0;ry2<NY;ry2++) for(rx2=0;rx2<NX;rx2++){
+    var x0=rx2*SX, y0=ry2*SY, yy2, xx2;
+    var list=[];
+    for(yy2=0;yy2<SY;yy2++) for(xx2=0;xx2<SX;xx2++){
+      var o=world.obj[z][y0+yy2][x0+xx2];
+      if(o.type===O.rover) list.push({o:o,x:x0+xx2,y:y0+yy2});
+    }
+    for(var i=0;i<list.length;i++){
+      var r=list[i];
+      var d=roverDir(z,r.o,r.x,r.y);
+      if(d<0) continue;
+      var nx=r.x+XD[d], ny=r.y+YD[d];
+      if(!roverCanEnter(z,nx,ny,true)) continue;
+      var target=world.obj[z][ny][nx];
+      if(target.type===O.rover) continue;          // 目标有另一只:本只等待
+      var clash=false;
+      for(var j=0;j<i;j++)
+        if(list[j].moved && list[j].nx===nx && list[j].ny===ny) clash=true;
+      if(clash) continue;                          // 同房多只同争一格:先到先得
+      if(target.type===O.gem){                     // 吃宝石 → 计数 + 反转计时
+        game.gems_stored++;
+        feed_timer=FEED_MS;
+        reverse_timer=REVERSE_MS;
+      }
+      world.obj[z][r.y][r.x].type=O.empty;
+      world.obj[z][ny][nx].type=O.rover;
+      world.obj[z][ny][nx].dir=d;
+      r.moved=true; r.nx=nx; r.ny=ny;
+      lightDirty=true;                             // 吃掉的若在底座上,供电会变
+    }
+  }
+}
+
+// ---------- 计时器步进(移植 timestep,L1237–1325:M3 能力 + M4 rover/宝石) ----------
 function update(ms){
+  // 魔杖归一(照 C:has_wand && gems_stored<0 → 0)
+  if(game.has_wand && game.gems_stored<0) game.gems_stored=0;
+
+  if(feed_timer>0){ feed_timer-=ms; if(feed_timer<0) feed_timer=0; }
+  if(reverse_timer>0){
+    reverse_timer-=ms;
+    if(reverse_timer<0) reverse_timer=0;
+  }
+
+  // Rover 自主步进(玩家所在层;宝石未集满或仍在反转期才继续)
+  if(FEATURE_ROVER && (game.gems_stored<MAX_GEMS || reverse_timer>0)){
+    rover_timer-=ms;
+    var guard=0;
+    while(rover_timer<0 && guard<4 && (game.gems_stored<MAX_GEMS || reverse_timer>0)){
+      rover_timer+=ROVER_MS;
+      stepRovers();
+      guard++;
+    }
+  }
+
   if(game.player_timer>0){
     game.player_timer-=ms;
     if(game.player_timer<0) game.player_timer=0;
@@ -453,7 +560,8 @@ function update(ms){
     else if(ch==="w") dy=-1; else if(ch==="s") dy=1;
     if(dx||dy){ tryMove(dx,dy); }
     else if(ch==="x"){ shoot(); }
-    // v=宝石拾放(M4)、z=撤销(M5)、c=反射镜(逻辑保留)——后续里程碑
+    else if(ch==="v"){ drop(); }
+    // z=撤销(M5)、c=反射镜(逻辑保留)——后续里程碑
   }
 }
 
@@ -570,7 +678,7 @@ function render(){
 function seamCross(a,b,n){ return Math.abs(a-b)>1; }
 
 // ---------- HUD ----------
-var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:""};
+var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:"",gems:""};
 function refreshHud(){
   var z=game.pz, x=game.px, y=game.py;
   var rx=(x/SX)|0, ry=(y/SY)|0;
@@ -583,6 +691,8 @@ function refreshHud(){
   if(hud.steps!==st){ hud.steps=st; byId("bsteps").textContent=st; }
   var ws=game.has_wand?"有":"无";
   if(hud.wand!==ws){ hud.wand=ws; byId("bwand").textContent=ws; }
+  var gs=(game.gems_stored>=0)?(game.gems_stored+"/"+MAX_GEMS):"—";
+  if(hud.gems!==gs){ hud.gems=gs; byId("bgems").textContent=gs; }
   // 当前可用能力(站在什么颜色的光束里)
   if(FEATURE_LIGHT){
     var ab=[0,0,0,0,0,0,0,0];
