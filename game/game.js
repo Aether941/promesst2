@@ -181,13 +181,14 @@ function propagate(z,world,pw){
 var world=null;
 var game={
   px:0, py:0, pz:0, pdir:DIR_S,
-  player_timer:0,            // 剩余步进时间(80→0)
-  fromX:0, fromY:0,          // 插值起点(格坐标)
+  player_timer:0,            // 剩余“可输入”时间(80→0)
   ability_flag:0,
   num_gems:0, gems_stored:-1,
   has_wand:false, num_zaps:0, egg_timer:0,
   steps:0
 };
+// 移动动画:提交时刻固定起止,单向推进,避免回退抖动
+var animFromX=0, animFromY=0, animToX=0, animToY=0, animT0=0, animOn=false;
 var q=null;                   // 排队按键(单槽,同 C queued_key)
 var held=[];                  // 按住中的移动键(最近优先)
 var checkpoint=null;
@@ -210,12 +211,17 @@ function reset(){
   world=parseWorld();
   var p=world.player;
   game.px=p.x; game.py=p.y; game.pz=p.z; game.pdir=DIR_S;
-  game.player_timer=0; game.fromX=p.x; game.fromY=p.y;
+  game.player_timer=0; animOn=false;
   game.ability_flag=0; game.num_gems=0; game.gems_stored=-1;
   game.has_wand=false; game.num_zaps=0; game.egg_timer=0; game.steps=0;
   q=null; held=[]; checkpoint=null;
   lightCache=[null,null]; lightDirty=true;
   onViewChanged(true);
+}
+
+function startAnim(fx,fy,tx,ty){
+  animFromX=fx; animFromY=fy; animToX=tx; animToY=ty;
+  animT0=performance.now(); animOn=true;
 }
 
 // ---------- 光照缓存 / 能力判定 / 射击(移植 compute_powered+propagate 应用层) ----------
@@ -318,8 +324,9 @@ function tryMove(x,y){
 
   // 调试穿墙:无视一切直接走一格
   if(noclip){
-    game.fromX=game.px; game.fromY=game.py;
+    var fx0=game.px, fy0=game.py;
     game.px=wrapX(game.px+x); game.py=wrapY(game.py+y);
+    startAnim(fx0,fy0,game.px,game.py);
     game.pdir=proposed_pdir; game.player_timer=80; game.steps++;
     onViewChanged(false);
     return "move";
@@ -341,27 +348,46 @@ function tryMove(x,y){
   }
 
   if(!travel){
-    // 橙光双步:逐格判定,中途门/石会拦截(避免跳过)
+    // 橙光双步:终点按原版判定;但路径中途若遇门(红光)/石块(黄光)则停下开门/砸碎
     var n=1;
     if(abilities[POW_double]){ n=1<<abilities[POW_double]; setUsed(POW_double); }
     var k;
     for(k=1;k<=n;k++){
       var cx=wrapX(game.px+x*k), cy=wrapY(game.py+y*k);
-      var kind=cellKind(z,cx,cy,abilities);
+      var isMid=(k<n);
+      var tT=world.tile[z][cy][cx], oT=world.obj[z][cy][cx];
+      if(isMid){
+        if(tT===T.door){                                  // 中途门:可开则开并停,不可开则挡
+          if(!abilities[POW_doors]) return false;
+          setUsed(POW_doors); game.ability_flag=used;
+          world.tile[z][cy][cx]=T.opendoor;
+          game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+          return "open";
+        }
+        if(oT.type===O.stone){                            // 中途石:可碎则碎并停,不可碎则挡
+          if(!abilities[POW_destroy]) return false;
+          setUsed(POW_destroy); game.ability_flag=used;
+          oT.type=O.empty;
+          game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+          return "destroy";
+        }
+        continue;                                         // 墙/投影器等中途按原版“过路”放行
+      }
+      var kind=cellKind(z,cx,cy,abilities);               // 终点判定(照原版)
       if(kind==="block") return false;
       if(kind==="door"){
         setUsed(POW_doors); game.ability_flag=used;
-        world.tile[z][cy][cx]=T.opendoor;                 // 开门,不前进
-        game.pdir=proposed_pdir; lightDirty=true;
+        world.tile[z][cy][cx]=T.opendoor;
+        game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
         return "open";
       }
       if(kind==="stone"){
         setUsed(POW_destroy); game.ability_flag=used;
-        world.obj[z][cy][cx].type=O.empty;                // 砸碎,不前进
-        game.pdir=proposed_pdir; lightDirty=true;
+        world.obj[z][cy][cx].type=O.empty;
+        game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
         return "destroy";
       }
-      if(world.tile[z][cy][cx]===T.wall) setUsed(POW_walls); // 穿墙消耗绿光
+      if(world.tile[z][cy][cx]===T.wall) setUsed(POW_walls);
       gx=cx; gy=cy;
     }
   } else {
@@ -370,13 +396,13 @@ function tryMove(x,y){
     if(kindT==="door"){
       setUsed(POW_doors); game.ability_flag=used;
       world.tile[z][gy][gx]=T.opendoor;
-      game.pdir=proposed_pdir; lightDirty=true;
+      game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
       return "open";
     }
     if(kindT==="stone"){
       setUsed(POW_destroy); game.ability_flag=used;
       world.obj[z][gy][gx].type=O.empty;
-      game.pdir=proposed_pdir; lightDirty=true;
+      game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
       return "destroy";
     }
   }
@@ -386,12 +412,13 @@ function tryMove(x,y){
   var got_wand=false;
   if(tgtObj.type===O.wand){ game.has_wand=true; tgtObj.type=O.empty; got_wand=true; }
 
+  var fx0=game.px, fy0=game.py;
   game.ability_flag=used;
   var nz=z;
   if(world.tile[z][gy][gx]===T.stairs) nz=(z+1)%2;
 
-  game.fromX=game.px; game.fromY=game.py;
   game.px=gx; game.py=gy; game.pz=nz;
+  startAnim(fx0,fy0,gx,gy);
   game.pdir=proposed_pdir;
   game.player_timer=80;
   game.steps++;
@@ -521,12 +548,15 @@ function render(){
     ctx.stroke();
   }
 
-  // 玩家(带 80ms 插值;跨世界缝直接瞬移)
+  // 玩家(80ms 单向插值;跨世界缝直接瞬移)
   var drawX=game.px, drawY=game.py;
-  var t=(80-game.player_timer)/80;
-  if(t<1 && game.player_timer>0 && !seamCross(game.fromX,game.px,WW) && !seamCross(game.fromY,game.py,WH)){
-    drawX = game.fromX + (game.px-game.fromX)*t;
-    drawY = game.fromY + (game.py-game.fromY)*t;
+  if(animOn){
+    var fr=Math.min(1,(performance.now()-animT0)/80);
+    if(fr>=1){ animOn=false; }
+    else if(!seamCross(animFromX,animToX,WW) && !seamCross(animFromY,animToY,WH)){
+      drawX=animFromX+(animToX-animFromX)*fr;
+      drawY=animFromY+(animToY-animFromY)*fr;
+    } else { animOn=false; }                 // 跨界:瞬移不插值
   }
   var dxs=game.pdir;
   ctx.globalAlpha=0.9;
