@@ -53,14 +53,23 @@
   <span class="badge">房间 <b id="broom">(?, ?)</b></span>
   <span class="badge">朝向 <b id="bfacing">—</b></span>
   <span class="badge">能力 <b id="bab">—</b></span>
+  <span class="badge">魔杖 <b id="bwand">无</b></span>
   <span class="badge">步数 <b id="bsteps">0</b></span>
   <span class="sp"></span>
   <label class="chk"><input type="checkbox" id="ckFollow" checked>跟随玩家</label>
   <label class="chk"><input type="checkbox" id="ckGrid">房间网格</label>
+  <label class="chk"><input type="checkbox" id="ckDbg">调试</label>
   <button class="btn" id="btnFit">适配窗口</button>
   <button class="btn" id="btnZo">−</button>
   <button class="btn" id="btnZi">＋</button>
   <button class="btn" id="btnRestart">重新开始</button>
+</div>
+
+<div id="dbgrow" style="display:none; padding:6px 16px; border-bottom:1px solid var(--line); background:#141927">
+  <span class="badge">调试(仅用于验证玩法)</span>
+  <button class="btn" id="dbgWand">给魔杖(+30 宝石)</button>
+  <button class="btn" id="dbgNoclip">穿墙开关</button>
+  <span class="badge" id="dbgNoclipState">穿墙:关</span>
 </div>
 
 <div id="stage"><canvas id="cv"></canvas></div>
@@ -70,7 +79,7 @@
   <kbd>X</kbd> 射击(魔杖:把照到你的投影器转向你的朝向) ·
   <kbd>V</kbd> 宝石拾/放(M4) · <kbd>Z</kbd> 撤销(M5) ·
   <kbd>#</kbd> 楼梯切层 ·
-  “能力”一栏显示你当前踩中的光束颜色。出生点:Z0 (12,20)。
+  “能力”一栏显示你当前踩中的光束颜色;魔杖可从地图的 <code>-</code> 格拾取,或勾选“调试”直接获得。出生点:Z0 (12,20)。
 </div>
 
 <script src="./map-data.js"></script>

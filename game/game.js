@@ -20,7 +20,8 @@ var EGG_BASE=11;
 var O={ empty:0, stone:1, gem:2, projector:3, wand:4, refl:5, rover:6 };
 
 // 颜色枚举与能力映射(POWER_* 值=颜色值,与 L707–712 一致)
-var POW_doors=0, POW_walls=1, POW_destroy=2, POW_double=3, POW_travel=5;
+// 颜色能力位(值=颜色枚举;与 L707–712 宏一致:destroy 是黄=4,勿用蓝)
+var POW_doors=0, POW_walls=1, POW_destroy=4, POW_double=3, POW_travel=5;
 
 // 精灵表索引(与 tile_sprite[]/obj_sprite[] 一致)
 var TILE_SPR=[
@@ -290,75 +291,104 @@ function shoot(){
   return false;
 }
 
-// ---------- 移动(移植 move(),L742–853;含紫光远行/橙光双步/各能力分支) ----------
+// 调试开关(顶栏“调试”启用):noclip 穿墙、直接给魔杖
+var noclip=false, debugOn=false;
+function cheatWand(){ game.has_wand=true; game.num_gems=30; }
+function cheatNoclip(){ noclip=!noclip; }
+
+// 目标格分类(能力已内联判定):block=不能走 / door=红光可开 / stone=黄光可碎 / walk=可走(含绿光穿墙)
+function cellKind(z,cx,cy,abilities){
+  var t=world.tile[z][cy][cx], o=world.obj[z][cy][cx];
+  if(o.type===O.projector || o.type===O.refl) return "block";
+  if(t===T.wall)  return abilities[POW_walls] ? "walk" : "block";
+  if(t===T.door)  return abilities[POW_doors] ? "door" : "block";
+  if(o.type===O.stone) return abilities[POW_destroy] ? "stone" : "block";
+  return "walk";
+}
+
+// ---------- 移动(移植 move(),L742–853;双步按逐格判定,门/石中途拦截) ----------
 function tryMove(x,y){
+  var z=game.pz;
   if(FEATURE_LIGHT) ensureLight();
   var abilities=[0,0,0,0,0,0,0,0];
   getAbilities(abilities);
   var proposed_pdir = x ? (x<0?DIR_W:DIR_E) : (y<0?DIR_N:DIR_S);
-  var L=FEATURE_LIGHT ? lightCache[game.pz] : null;
   var used=game.ability_flag;
   function setUsed(b){ used |= (1<<b); }
-  var gx,gy, travel=false;
 
+  // 调试穿墙:无视一切直接走一格
+  if(noclip){
+    game.fromX=game.px; game.fromY=game.py;
+    game.px=wrapX(game.px+x); game.py=wrapY(game.py+y);
+    game.pdir=proposed_pdir; game.player_timer=80; game.steps++;
+    onViewChanged(false);
+    return "move";
+  }
+
+  var L=FEATURE_LIGHT ? lightCache[z] : null;
   function isTravelCell(cx,cy){
     return L && (L.L[cy][cx][proposed_pdir]===POW_travel ||
                  L.L[cy][cx][proposed_pdir^2]===POW_travel);
   }
 
-  // 紫光远行:沿光束滑到“最后一个仍在紫光上”的格子
+  // ---- 紫光远行(照 C:只判定终点,中途仅受“仍在紫光上”约束) ----
+  var travel=false, gx=game.px, gy=game.py;
   if(L && isTravelCell(game.py,game.px)){
     gx=wrapX(game.px+x); gy=wrapY(game.py+y);
     while(isTravelCell(gy,gx)){ gx=wrapX(gx+x); gy=wrapY(gy+y); }
     gx=wrapX(gx-x); gy=wrapY(gy-y);
     if(gx!==game.px || gy!==game.py){ setUsed(POW_travel); travel=true; }
   }
+
   if(!travel){
-    if(abilities[POW_double]){
-      x*=(1<<abilities[POW_double]); y*=(1<<abilities[POW_double]);
-      setUsed(POW_double);
+    // 橙光双步:逐格判定,中途门/石会拦截(避免跳过)
+    var n=1;
+    if(abilities[POW_double]){ n=1<<abilities[POW_double]; setUsed(POW_double); }
+    var k;
+    for(k=1;k<=n;k++){
+      var cx=wrapX(game.px+x*k), cy=wrapY(game.py+y*k);
+      var kind=cellKind(z,cx,cy,abilities);
+      if(kind==="block") return false;
+      if(kind==="door"){
+        setUsed(POW_doors); game.ability_flag=used;
+        world.tile[z][cy][cx]=T.opendoor;                 // 开门,不前进
+        game.pdir=proposed_pdir; lightDirty=true;
+        return "open";
+      }
+      if(kind==="stone"){
+        setUsed(POW_destroy); game.ability_flag=used;
+        world.obj[z][cy][cx].type=O.empty;                // 砸碎,不前进
+        game.pdir=proposed_pdir; lightDirty=true;
+        return "destroy";
+      }
+      if(world.tile[z][cy][cx]===T.wall) setUsed(POW_walls); // 穿墙消耗绿光
+      gx=cx; gy=cy;
     }
-    gx=wrapX(game.px+x); gy=wrapY(game.py+y);
+  } else {
+    var kindT=cellKind(z,gy,gx,abilities);
+    if(kindT==="block") return false;
+    if(kindT==="door"){
+      setUsed(POW_doors); game.ability_flag=used;
+      world.tile[z][gy][gx]=T.opendoor;
+      game.pdir=proposed_pdir; lightDirty=true;
+      return "open";
+    }
+    if(kindT==="stone"){
+      setUsed(POW_destroy); game.ability_flag=used;
+      world.obj[z][gy][gx].type=O.empty;
+      game.pdir=proposed_pdir; lightDirty=true;
+      return "destroy";
+    }
   }
 
-  var z=game.pz;
-  // C:若当前站在墙内且无绿光 → 卡住(L787–792)
-  if(world.tile[z][game.py][game.px]===T.wall){
-    if(!abilities[POW_walls]) return false;
-    setUsed(POW_walls);
-  }
-  var tgtTile=world.tile[z][gy][gx];
+  // ---- 落地(共用) ----
   var tgtObj=world.obj[z][gy][gx];
-
-  // 目标格判定(顺序照抄 move())
-  if(tgtObj.type===O.projector) return false;               // 不可站
-  if(tgtTile===T.wall){ if(!abilities[POW_walls]) return false; setUsed(POW_walls); }
-  if(tgtTile===T.door){
-    if(!abilities[POW_doors]) return false;
-    setUsed(POW_doors);
-    game.ability_flag=used;
-    world.tile[z][gy][gx]=T.opendoor;                        // 开门,不前进
-    game.pdir=proposed_pdir;
-    lightDirty=true;
-    return "open";
-  }
-  if(tgtObj.type===O.refl) return false;
-  if(tgtObj.type===O.stone){
-    if(!abilities[POW_destroy]) return false;
-    setUsed(POW_destroy);
-    game.ability_flag=used;
-    tgtObj.type=O.empty;                                     // 原地砸碎,不前进
-    game.pdir=proposed_pdir;
-    lightDirty=true;
-    return "destroy";
-  }
-
   var got_wand=false;
   if(tgtObj.type===O.wand){ game.has_wand=true; tgtObj.type=O.empty; got_wand=true; }
 
   game.ability_flag=used;
   var nz=z;
-  if(tgtTile===T.stairs) nz=(z+1)%2;                         // 楼梯切层
+  if(world.tile[z][gy][gx]===T.stairs) nz=(z+1)%2;
 
   game.fromX=game.px; game.fromY=game.py;
   game.px=gx; game.py=gy; game.pz=nz;
@@ -510,7 +540,7 @@ function render(){
 function seamCross(a,b,n){ return Math.abs(a-b)>1; }
 
 // ---------- HUD ----------
-var hud={z:"",xy:"",room:"",face:"",steps:"",ab:""};
+var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:""};
 function refreshHud(){
   var z=game.pz, x=game.px, y=game.py;
   var rx=(x/SX)|0, ry=(y/SY)|0;
@@ -521,6 +551,8 @@ function refreshHud(){
   if(hud.room!==rs){ hud.room=rs; byId("broom").textContent=rs; }
   if(hud.face!==fs){ hud.face=fs; byId("bfacing").textContent=fs; }
   if(hud.steps!==st){ hud.steps=st; byId("bsteps").textContent=st; }
+  var ws=game.has_wand?"有":"无";
+  if(hud.wand!==ws){ hud.wand=ws; byId("bwand").textContent=ws; }
   // 当前可用能力(站在什么颜色的光束里)
   if(FEATURE_LIGHT){
     var ab=[0,0,0,0,0,0,0,0];
@@ -582,6 +614,15 @@ byId("btnZi").addEventListener("click",function(){ autoFit=false; zoomK=Math.min
 byId("btnRestart").addEventListener("click",function(){ reset(); resizeCanvas(); render(); });
 byId("ckFollow").addEventListener("change",function(e){ follow=e.target.checked; centerPlayer(); });
 byId("ckGrid").addEventListener("change",function(e){ showGrid=e.target.checked; });
+byId("ckDbg").addEventListener("change",function(e){
+  debugOn=e.target.checked;
+  byId("dbgrow").style.display=debugOn?"block":"none";
+});
+byId("dbgWand").addEventListener("click",function(){ cheatWand(); });
+byId("dbgNoclip").addEventListener("click",function(){
+  cheatNoclip();
+  byId("dbgNoclipState").textContent="穿墙:"+(noclip?"开":"关");
+});
 window.addEventListener("resize",function(){ if(autoFit) resizeCanvas(); });
 
 // ---------- 主循环(rAF + 16ms 步进) ----------
