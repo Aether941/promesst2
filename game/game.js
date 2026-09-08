@@ -219,7 +219,15 @@ function reset(){
   game.has_wand=false; game.num_zaps=0; game.egg_timer=0; game.steps=0;
   q=null; held=[]; checkpoint=null;
   rover_timer=0; feed_timer=0; reverse_timer=-1;
+  // 记录 rover 出生位置(撤销重置用)
+  roverInit=[];
+  for(var zi=0;zi<2;zi++) for(var yi=0;yi<WH;yi++) for(var xi=0;xi<WW;xi++){
+    var oi=world.obj[zi][yi][xi];
+    if(oi.type===O.rover) roverInit.push({z:zi,y:yi,x:xi,dir:oi.dir});
+  }
+  HISTORY=[]; ckptSnap=null;
   lightCache=[null,null]; lightDirty=true;
+  lastSnap=buildSnap();
   onViewChanged(true);
 }
 
@@ -439,7 +447,7 @@ function tryMove(x,y){
   game.player_timer=80;
   game.steps++;
   if(nz!==z) lightDirty=true;
-  if(got_wand){ checkpoint=copyWorld(); checkpoint.state=snapshotState(); }
+  if(got_wand){ ckptSnap=buildSnap(); }        // 魔杖快照(菜单恢复用)
   onViewChanged(false);
   return "move";
 }
@@ -452,6 +460,155 @@ function snapshotState(){
     num_zaps:game.num_zaps, egg_timer:game.egg_timer
   };
 }
+
+// ---------- M5:差分撤销(一次性,无上限)+ IndexedDB 跨会话持久化 ----------
+var HISTORY=[];        // 条目 {diffs:[{k,i,old,new}], pre:{player,t}}
+var lastSnap=null;     // 最近一次提交后的完整状态(用于差分)
+var ckptSnap=null;     // 魔杖快照(菜单“从 wand 恢复”用,M6)
+var DB=null, saveTimer=null;
+var roverInit=[];      // 各层 rover 的出生(格+方向),撤销时用于重置
+
+function pState(){ return {px:game.px,py:game.py,pz:game.pz,pdir:game.pdir,
+  flag:game.ability_flag,gems:game.num_gems,fed:game.gems_stored,
+  wand:game.has_wand,zaps:game.num_zaps,egg:game.egg_timer}; }
+function tState(){ return {feed:feed_timer,rev:reverse_timer,rt:rover_timer}; }
+function applyP(p){ game.px=p.px; game.py=p.py; game.pz=p.pz; game.pdir=p.pdir;
+  game.ability_flag=p.flag; game.num_gems=p.gems; game.gems_stored=p.fed;
+  game.has_wand=p.wand; game.num_zaps=p.zaps; game.egg_timer=p.egg; }
+function applyT(t){ feed_timer=t.feed; reverse_timer=t.rev; rover_timer=t.rt; }
+
+function buildSnap(){
+  var S={tile:[],type:[],dir:[],col:[]};
+  for(var z=0;z<2;z++){ S.tile[z]=[]; S.type[z]=[]; S.dir[z]=[]; S.col[z]=[];
+    for(var y=0;y<WH;y++){ var rt=[],a=[],b=[],c=[];
+      for(var x=0;x<WW;x++){ rt.push(world.tile[z][y][x]);
+        var o=world.obj[z][y][x]; a.push(o.type); b.push(o.dir); c.push(o.color); }
+      S.tile[z].push(rt); S.type[z].push(a); S.dir[z].push(b); S.col[z].push(c); } }
+  S.player=pState(); S.t=tState();
+  return S;
+}
+function cellIdx(z,y,x){ return (z*WH+y)*WW+x; }
+// 差分只记“玩家可影响”的格子;rover 所在/移入的格子一律忽略(rover 状态不入历史)
+function diffSnap(A,B){
+  var diffs=[];
+  for(var z=0;z<2;z++) for(var y=0;y<WH;y++) for(var x=0;x<WW;x++){
+    if(A.type[z][y][x]===O.rover || B.type[z][y][x]===O.rover) continue;
+    if(A.tile[z][y][x]!==B.tile[z][y][x])
+      diffs.push({k:0,i:cellIdx(z,y,x),old:A.tile[z][y][x],new:B.tile[z][y][x]});
+    if(A.type[z][y][x]!==B.type[z][y][x])
+      diffs.push({k:1,i:cellIdx(z,y,x),old:A.type[z][y][x],new:B.type[z][y][x]});
+    if(A.dir[z][y][x]!==B.dir[z][y][x])
+      diffs.push({k:2,i:cellIdx(z,y,x),old:A.dir[z][y][x],new:B.dir[z][y][x]});
+    if(A.col[z][y][x]!==B.col[z][y][x])
+      diffs.push({k:3,i:cellIdx(z,y,x),old:A.col[z][y][x],new:B.col[z][y][x]});
+  }
+  return diffs;
+}
+function idxToC(i){ var z=(i/(WH*WW))|0; var r=i%(WH*WW); return {z:z,y:(r/WW)|0,x:r%WW}; }
+function applyDiffWorld(d,useOld){
+  var v=useOld?d.old:d.new, p=idxToC(d.i), o=world.obj[p.z][p.y][p.x];
+  if(d.k===0){ world.tile[p.z][p.y][p.x]=v; }
+  else if(d.k===1) o.type=v;
+  else if(d.k===2) o.dir=v;
+  else o.color=v;
+}
+function sameP(a,b){ return a.px===b.px&&a.py===b.py&&a.pz===b.pz&&a.pdir===b.pdir&&
+  a.flag===b.flag&&a.gems===b.gems&&a.wand===b.wand&&a.zaps===b.zaps; }
+// 注:fed(rover 吃宝石)/egg 不计入历史,撤销不回滚(rover 状态不记录)
+function sameT(a,b){ return false; }   // rover 计时器永不触发“有变化”入栈
+function commitHistory(){
+  if(!lastSnap) return;
+  var cur=buildSnap();
+  var diffs=diffSnap(lastSnap,cur);
+  var metaChanged=!sameP(lastSnap.player,cur.player);
+  if(!diffs.length && !metaChanged){ lastSnap=cur; return; }   // 真正 no-op
+  HISTORY.push({diffs:diffs, pre:{player:lastSnap.player, t:lastSnap.t}});
+  lastSnap=cur;
+  scheduleSave();
+}
+// Z 键撤销:弹栈回滚“玩家可影响”的改动;rover 重置到出生格(不记录/不回放)
+function resetRoversToInit(){
+  if(!world) return;
+  var z,y,x;
+  for(z=0;z<2;z++) for(y=0;y<WH;y++) for(x=0;x<WW;x++)
+    if(world.obj[z][y][x].type===O.rover) world.obj[z][y][x].type=O.empty;
+  for(var i=0;i<roverInit.length;i++){
+    var r=roverInit[i], o=world.obj[r.z][r.y][r.x];
+    o.type=O.rover; o.dir=r.dir; o.color=0;
+  }
+  feed_timer=0; reverse_timer=-1; rover_timer=0;   // rover 计时器复位
+}
+function undo(){
+  if(!HISTORY.length) return;
+  var e=HISTORY.pop();
+  var keepFed=game.gems_stored, keepEgg=game.egg_timer;
+  for(var i=0;i<e.diffs.length;i++) applyDiffWorld(e.diffs[i],true);
+  applyP(e.pre.player);
+  game.gems_stored=keepFed; game.egg_timer=keepEgg;   // rover 计数不回滚
+  resetRoversToInit();
+  game.player_timer=0; animOn=false;
+  lightDirty=true;
+  lastSnap=buildSnap();
+  scheduleSave();
+  onViewChanged(false);
+}
+
+// ---------- IndexedDB(状态+整局历史) ----------
+function openDB(){
+  return new Promise(function(res,rej){
+    if(!window.indexedDB){ rej(new Error("no indexedDB")); return; }
+    var rq=indexedDB.open("promesst2_save",1);
+    rq.onupgradeneeded=function(){ var db=rq.result;
+      if(!db.objectStoreNames.contains("kv")) db.createObjectStore("kv"); };
+    rq.onsuccess=function(){ DB=rq.result; res(); };
+    rq.onerror=function(){ rej(rq.error||new Error("idb open failed")); };
+  });
+}
+function idbGet(key){
+  return new Promise(function(res,rej){
+    var rq=DB.transaction("kv","readonly").objectStore("kv").get(key);
+    rq.onsuccess=function(){ res(rq.result||null); };
+    rq.onerror=function(){ rej(rq.error); };
+  });
+}
+function idbPut(key,val){
+  return new Promise(function(res,rej){
+    var rq=DB.transaction("kv","readwrite").objectStore("kv").put(val,key);
+    rq.onsuccess=function(){ res(); };
+    rq.onerror=function(){ rej(rq.error); };
+  });
+}
+function packSave(){
+  return { v:1, g:lastSnap, ck:ckptSnap, h:HISTORY };
+}
+function saveToDB(){
+  if(!DB || !lastSnap) return Promise.resolve();
+  return idbPut("main",packSave());
+}
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer=setTimeout(function(){ saveTimer=null; saveToDB(); },800);
+}
+// 读档(返回存档对象或 null)
+function loadFromDB(){
+  if(!DB) return Promise.resolve(null);
+  return idbGet("main").then(function(d){ return (d && d.g) ? d : null; })
+                       .catch(function(){ return null; });
+}
+function restoreSave(d){
+  reset();                                        // 先建一份干净的底层(解析+默认)
+  var g=d.g;
+  for(var z=0;z<2;z++) for(var y=0;y<WH;y++) for(var x=0;x<WW;x++){
+    world.tile[z][y][x]=g.tile[z][y][x];
+    var o=world.obj[z][y][x];
+    o.type=g.type[z][y][x]; o.dir=g.dir[z][y][x]; o.color=g.col[z][y][x];
+  }
+  applyP(g.player); applyT(g.t);
+  HISTORY=(d.h||[]).slice();
+  ckptSnap=d.ck||null;
+  lastSnap=buildSnap();
+}
+window.addEventListener("pagehide",function(){ if(DB&&lastSnap) saveToDB(); });
 
 // V 键:宝石拾取 / 放置(移植 drop(),L855–874:捡宝石或放回底座)
 function drop(){
@@ -570,10 +727,11 @@ function update(ms){
     var dx=0,dy=0;
     if(ch==="a") dx=-1; else if(ch==="d") dx=1;
     else if(ch==="w") dy=-1; else if(ch==="s") dy=1;
-    if(dx||dy){ tryMove(dx,dy); }
-    else if(ch==="x"){ shoot(); }
-    else if(ch==="v"){ drop(); }
-    // z=撤销(M5)、c=反射镜(逻辑保留)——后续里程碑
+    if(dx||dy){ tryMove(dx,dy); commitHistory(); }
+    else if(ch==="x"){ shoot(); commitHistory(); }
+    else if(ch==="v"){ drop(); commitHistory(); }
+    else if(ch==="z"){ undo(); }
+    // c=反射镜(逻辑保留)——后续里程碑
   }
 }
 
@@ -690,7 +848,7 @@ function render(){
 function seamCross(a,b,n){ return Math.abs(a-b)>1; }
 
 // ---------- HUD ----------
-var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:"",gems:""};
+var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:"",gems:"",undo:""};
 function refreshHud(){
   var z=game.pz, x=game.px, y=game.py;
   var rx=(x/SX)|0, ry=(y/SY)|0;
@@ -705,6 +863,8 @@ function refreshHud(){
   if(hud.wand!==ws){ hud.wand=ws; byId("bwand").textContent=ws; }
   var gs=(game.gems_stored>=0)?(game.gems_stored+"/"+MAX_GEMS):"—";
   if(hud.gems!==gs){ hud.gems=gs; byId("bgems").textContent=gs; }
+  var u=String(HISTORY.length);
+  if(hud.undo!==u){ hud.undo=u; byId("bund").textContent=u; }
   // 当前可用能力(站在什么颜色的光束里)
   if(FEATURE_LIGHT){
     var ab=[0,0,0,0,0,0,0,0];
@@ -774,7 +934,7 @@ window.addEventListener("blur",function(){ held=[]; q=null; });
 byId("btnFit").addEventListener("click",function(){ autoFit=true; resizeCanvas(); });
 byId("btnZo").addEventListener("click",function(){ autoFit=false; zoomK=Math.max(1,zoomK-1); resizeCanvas(); });
 byId("btnZi").addEventListener("click",function(){ autoFit=false; zoomK=Math.min(4,zoomK+1); resizeCanvas(); });
-byId("btnRestart").addEventListener("click",function(){ reset(); resizeCanvas(); render(); });
+byId("btnRestart").addEventListener("click",function(){ reset(); resizeCanvas(); render(); scheduleSave(); });
 byId("ckFollow").addEventListener("change",function(e){ follow=e.target.checked; centerPlayer(); });
 byId("ckGrid").addEventListener("change",function(e){ showGrid=e.target.checked; });
 byId("ckDbg").addEventListener("change",function(e){
@@ -812,10 +972,16 @@ function err(msg){ var e=byId("err"); e.style.display="block"; e.textContent=msg
         var tc=tmp.getContext("2d"); tc.drawImage(img,0,0);
         imgData=tc.getImageData(0,0,ATLAS,ATLAS);
         computePowers();
-        reset();
-        resizeCanvas();
-        render();
-        requestAnimationFrame(loop);
+        // 尝试打开 IndexedDB 读档;失败则新开局(旧流程照常可玩)
+        var p=openDB().then(function(){ return loadFromDB(); })
+                      .catch(function(){ return null; });
+        p.then(function(save){
+          if(save && save.g) restoreSave(save);
+          else reset();
+          resizeCanvas();
+          render();
+          requestAnimationFrame(loop);
+        });
       }catch(ex){ err("初始化失败:\n"+ex.message+"\n(file:// 打开可能有跨域限制,请用 Live Server 或 python -m http.server)"); }
     };
     img.onerror=function(){ err("无法加载 assets/sprites.png —— 请确认文件存在。"); };

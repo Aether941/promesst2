@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PROMESST 2 · 网页版移植 — M4(宝石 / Rover)</title>
+<title>PROMESST 2 · 网页版移植 — M5(撤销/存档)</title>
 <style>
   :root{ --bg:#0d1017; --panel:#171d2d; --line:#2b3450; --txt:#d9dee9; --dim:#8b93a7; --accent:#b07cff; }
   *{box-sizing:border-box}
@@ -41,8 +41,8 @@
 </head>
 <body>
 <header>
-  <h1>PROMESST 2 · 网页版 — M4 里程碑(宝石拾/放 V · Rover 自主移动)</h1>
-  <p>按 <code>docs-map-port/README.md</code> v4 移植。M4 范围:<kbd>V</kbd> 拾/放宝石(供电随放置刷新)、Rover 每 630ms 自主移动、吃宝石计分并反转。</p>
+  <h1>PROMESST 2 · 网页版 — M5 里程碑(Z 撤销上一步 · IndexedDB 跨会话存档)</h1>
+  <p>按 <code>docs-map-port/README.md</code> v4 移植。M5 范围:<kbd>Z</kbd> 撤销上一步(差分、无上限、一次性);整局历史存入 IndexedDB,关页重开仍可一路撤销到开局。</p>
 </header>
 
 <div id="err"></div>
@@ -55,6 +55,7 @@
   <span class="badge">能力 <b id="bab">—</b></span>
   <span class="badge">魔杖 <b id="bwand">无</b></span>
   <span class="badge">已喂 <b id="bgems">—</b></span>
+  <span class="badge">可撤销 <b id="bund">0</b></span>
   <span class="badge">步数 <b id="bsteps">0</b></span>
   <span class="sp"></span>
   <label class="chk"><input type="checkbox" id="ckFollow" checked>跟随玩家</label>
@@ -79,11 +80,9 @@
 
 <div id="info">
   <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 ·
-  <kbd>X</kbd> 射击(魔杖:把照到你的投影器转向你的朝向) ·
-  <kbd>V</kbd> 宝石拾/放(站宝石上拾取;带宝石站空底座放入) ·
-  <kbd>Z</kbd> 撤销(M5) ·
-  <kbd>#</kbd> 楼梯切层 ·
-  Rover(&amp;) 会每 0.63s 自主移动,吃到宝石会显示在“已喂”并反转。<code>-</code> 格拾魔杖;调试面板可一键获得。出生点:Z0 (12,20)。
+  <kbd>X</kbd> 射击(魔杖) · <kbd>V</kbd> 宝石拾/放 ·
+  <kbd>Z</kbd> 撤销上一步 · <kbd>#</kbd> 楼梯切层 ·
+  进度与整局撤销历史自动存入 IndexedDB(关页重开仍可一路撤销到开局);「重新开始」会清档。出生点:Z0 (12,20)。
 </div>
 
 <script src="./map-data.js"></script>
