@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROMESST 2 · 完整大地图(复刻)</title>
+<style>
+  :root{ --bg:#0d1017; --panel:#171d2d; --line:#2b3450; --txt:#d9dee9; --dim:#8b93a7; --accent:#b07cff; }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--txt);
+       font:14px/1.6 "Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+  header{max-width:1100px; margin:0 auto; padding:20px 18px 4px}
+  header h1{margin:0; font-size:24px; color:#fff}
+  header p{margin:4px 0 0; color:var(--dim); font-size:13px}
+  .layout{max-width:1100px; margin:0 auto; padding:10px 18px 40px; display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+  .ctrl{width:230px; flex:0 0 230px}
+  .ctrl h2{font-size:13px; color:#cfc3ff; margin:2px 0 8px; text-transform:uppercase; letter-spacing:1px}
+  .ctrl .row{margin:7px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .ctrl label{display:block; margin:5px 0; font-size:13px; cursor:pointer; user-select:none}
+  .ctrl input[type=checkbox]{accent-color:var(--accent)}
+  .btn{background:#1d2438; color:var(--txt); border:1px solid var(--line); border-radius:7px;
+       padding:5px 12px; cursor:pointer; font-size:13px}
+  .btn.on{background:#3a2b63; border-color:var(--accent); color:#fff}
+  .btn:hover{border-color:var(--accent)}
+  .seg{display:flex; gap:6px}
+  .seg .btn{flex:1; text-align:center}
+  .hint{color:var(--dim); font-size:12px}
+  .stage{flex:1; min-width:0}
+  canvas{display:block; background:#000; border:1px solid var(--line); border-radius:6px;
+         image-rendering:pixelated; max-width:100%}
+  #info{font-size:12.5px; color:var(--dim); margin-top:8px; min-height:1.2em}
+  #info b{color:#ffd9b0}
+  .stats{font-size:12px; color:var(--dim); margin-top:6px}
+  .legend{max-width:1100px; margin:0 auto; padding:0 18px 60px}
+  .legend h2{font-size:15px; color:#e9e3ff; margin:18px 0 6px}
+  .lg{display:flex; flex-wrap:wrap; gap:6px 18px; font-size:13px; color:#c3cadb}
+  .lg span{white-space:nowrap}
+  .lg code{background:#232b44; border:1px solid var(--line); border-radius:4px; padding:0 6px; color:#e6e1ff}
+  #err{display:none; max-width:1100px; margin:12px auto; background:#2a0f14; color:#ffb4bc;
+        border:1px solid #ff6b7a; border-radius:8px; padding:10px 14px; font:12px/1.6 Consolas,monospace; white-space:pre-wrap}
+  @media(max-width:860px){ .ctrl{flex:1 1 100%} }
+</style>
+</head>
+<body>
+<header>
+  <h1>PROMESST 2 · 完整大地图(素材复刻)</h1>
+  <p>非游戏本体 —— 仅复刻地图:数据取自 <code>main.c</code> 的 rawmap,精灵取自 <code>data2/sprites.png</code>。两层 24×24 世界,可切层、开关光束/网格/标注。</p>
+</header>
+
+<div id="err"></div>
+
+<div class="layout">
+  <div class="panel ctrl">
+    <h2>视图控制</h2>
+    <div class="row"><span class="hint">层(z)</span></div>
+    <div class="seg">
+      <button class="btn on" id="z0btn" data-z="0">Z0 · 地面</button>
+      <button class="btn" id="z1btn" data-z="1">Z1 · 下层</button>
+    </div>
+    <label><input type="checkbox" id="ckBeams" checked> 光束(按供电规则还原)</label>
+    <label><input type="checkbox" id="ckGrid" checked> 房间网格(6×6)</label>
+    <label><input type="checkbox" id="ckTint" checked> 房间调色(取原版色板)</label>
+    <label><input type="checkbox" id="ckMark" checked> 标注(出生点/多余 p/巢穴)</label>
+    <div class="row" style="margin-top:10px">
+      <span class="hint">放大</span>
+      <select id="scale" class="btn">
+        <option value="1">1×</option>
+        <option value="2" selected>2×</option>
+        <option value="3">3×</option>
+        <option value="4">4×</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="dl">⬇ 下载 PNG</button>
+    </div>
+    <div id="stats" class="stats"></div>
+    <div class="hint" style="margin-top:10px">提示:把鼠标移到地图格子上可查看该格解析信息。</div>
+    <div class="hint" style="margin-top:6px">若地图空白,请用本地服务器打开(如 VSCode Live Server),勿直接双击 file://。</div>
+  </div>
+
+  <div class="panel stage">
+    <canvas id="cv" width="768" height="768"></canvas>
+    <div id="info">(鼠标悬停查看格子信息)</div>
+  </div>
+</div>
+
+<div class="legend">
+  <h2>图例(与 main.c 解析一致)</h2>
+  <div class="lg">
+    <span><code>|</code> 墙</span><span><code>.</code> 地板</span><span><code>#</code> 楼梯(上下层)</span>
+    <span><code>=</code> 宝石底座</span><span><code>D</code> 门</span>
+    <span><code>&gt;</code> <code>^</code> <code>&lt;</code> <code>v</code> 箭头(rover 转向)</span>
+    <span><code>*</code> 石块</span><span><code>1–9 0</code> 底座内宝石</span><span><code>@ %</code> 裸宝石</span>
+    <span><code>&amp;</code> rover 机器人</span><span><code>/</code> 反射镜</span><span><code>-</code> 魔杖</span>
+    <span><code>p</code> 出生点(最后一处生效)</span><span><code>z</code> 巢穴(蛋区)</span>
+  </div>
+  <h2>投影器字母 → 颜色(光束色由精灵表 112 行取样)</h2>
+  <div class="lg" id="projLegend"></div>
+  <h2>关于渲染</h2>
+  <div class="lg" style="display:block">
+    瓦片与物体均按 <code>main.c</code> 的精灵表索引(<code>tile_sprite[]</code>/<code>obj_sprite[]</code>)从原图 16px 格取样;
+    房间底色按 <code>get_map_color()</code> 从精灵表 (x=120.., y=96/104..) 取样;物体按游戏规则不调色(纯白显示);
+    光束按 <code>compute_powered()</code>(有底座且底座全被宝石占满 → 通电)与 <code>propagate_light()</code>(门/物体阻挡、反射镜转向、世界卷绕)规则计算。
+  </div>
+</div>
+
+<script src="./map-data.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   PROMESST 2 大地图复刻 —— 移植自 main.c(2014-05-18,2543 行)
+   ============================================================ */
+
+// ---------- 常量(与源码一致) ----------
+var SX=6, SY=6, NX=4, NY=4;                 // 房间 6×6,每层 4×4 房间
+var WW=NX*SX, WH=NY*SY;                     // 24×24
+var DIR_E=0, DIR_N=1, DIR_W=2, DIR_S=3;
+var XD=[1,0,-1,0], YD=[0,-1,0,1];
+
+// 瓦片枚举(值顺序与 main.c enum 一致)
+var T={ wall:0, door:1, opendoor:2, floor:3, recep:4, frag:5,
+        arrow_e:6, arrow_n:7, arrow_w:8, arrow_s:9, stairs:10,
+        egg:11 };
+var EGG_BASE=11;
+
+// 物体枚举
+var O={ empty:0, stone:1, gem:2, projector:3, wand:4, refl:5, rover:6 };
+
+// 颜色枚举(供光束/图例)
+var CNAMES=["红","绿","蓝","橙","黄","紫","青","粉"];
+var CCOL =["#ff6b6b","#59e06a","#5aa9ff","#ff9d5c","#ffe66d","#b07cff","#5ee8d8","#ff8cd8"];
+
+// tile_sprite[](19 项,索引=瓦片枚举值)
+var TILE_SPR=[
+  [0,0],[6,0],[5,0],[0,3],[1,4],[6,2],        // wall..frag
+  [0,3],[0,3],[0,3],[0,3],                    // 箭头(与地板同格)
+  [1,3],                                      // stairs
+  [5,3],[6,3],[7,3],[3,1],[4,1],[5,1],[6,5],[6,6] // egg..egg_8
+];
+// obj_sprite[](前 7 项,索引=物体枚举值)
+var OBJ_SPR=[
+  [6,1],[2,1],[0,4],[0,2],[2,4],[5,6],[6,2]
+];
+
+// 投影器字母表与 (颜色,方向) 数据(与 lights[]/lightdata[] 一致)
+var LIGHTS="rRPwgGHyYLtTVjoOAa";
+var LIGHTDATA=[
+ /* idx 0..3  红 r R P w : E N S W */
+ {c:0,d:DIR_E},{c:0,d:DIR_N},{c:0,d:DIR_S},{c:0,d:DIR_W},
+ /* 4..6    绿 g G H   : E S W */
+ {c:1,d:DIR_E},{c:1,d:DIR_S},{c:1,d:DIR_W},
+ /* 7..9    黄 y Y L   : S E W   (enum 中黄=4) */
+ {c:4,d:DIR_S},{c:4,d:DIR_E},{c:4,d:DIR_W},
+ /* 10..13  紫 t T V j : W S N E (enum 中紫=5) */
+ {c:5,d:DIR_W},{c:5,d:DIR_S},{c:5,d:DIR_N},{c:5,d:DIR_E},
+ /* 14..17  橙 o O A a : E W N S */
+ {c:3,d:DIR_E},{c:3,d:DIR_W},{c:3,d:DIR_N},{c:3,d:DIR_S}
+];
+
+// 字符 → 含义(悬停与图例)
+var CHAR_MEANING={
+  "|":"墙", ".":"地板", "#":"楼梯", "=":"宝石底座", "D":"门",
+  ">":"箭头E","^":"箭头N","<":"箭头W","v":"箭头S",
+  "*":"石块", "-":"魔杖", "/":"反射镜", "&":"rover", "p":"出生点", "z":"巢穴",
+  "0":"底座宝石","1":"底座宝石","2":"底座宝石","3":"底座宝石","4":"底座宝石",
+  "5":"底座宝石","6":"底座宝石","7":"底座宝石","8":"底座宝石","9":"底座宝石",
+  "@":"裸宝石","%":"裸宝石"
+};
+
+// ---------- 从精灵表取样 ----------
+var ATLAS=128, CELL=16, img=null, imgCtx=null, imgData=null;
+
+function sample(x,y){
+  if(!imgData) return [255,255,255,255];
+  var i=(y*ATLAS+x)*4;
+  return [imgData.data[i],imgData.data[i+1],imgData.data[i+2],imgData.data[i+3]];
+}
+
+// 房间调色与 powers 色(在图片加载后计算)
+var roomPalette=null;   // roomPalette[z][ry][rx] = [r,g,b]
+var powers=null;        // powers[8]
+
+function computePalette(){
+  roomPalette=[]; powers=[];
+  for(var i=0;i<8;i++) powers.push(sample(112+i,96));
+  for(var z=0;z<2;z++){
+    roomPalette[z]=[];
+    for(var ry=0;ry<NY;ry++){
+      roomPalette[z][ry]=[];
+      for(var rx=0;rx<NX;rx++){
+        roomPalette[z][ry].push(sample(120+rx, 96+ry+(z?8:0)));
+      }
+    }
+  }
+}
+
+// ---------- 关卡解析(移植 init_game) ----------
+function parseMap(){
+  var tile=[[],[]], obj=[[],[]];
+  var player=null, egg=null, extraP=[];
+  var z,y,x;
+
+  for(z=0;z<2;z++){
+    tile[z]=new Array(WH); obj[z]=new Array(WH);
+    for(y=0;y<WH;y++){
+      tile[z][y]=new Array(WW).fill(T.floor);
+      obj[z][y]=new Array(WW);
+      for(x=0;x<WW;x++) obj[z][y][x]={type:O.empty, dir:0, color:0};
+    }
+  }
+
+  for(z=0;z<2;z++){
+    for(y=0;y<WH;y++){
+      var s=RAW[y][z];
+      for(x=0;x<WW;x++){
+        var idx=x+Math.floor(x/SX);        // 跳过房间间空格(对应 C: data[x + x/SIZE_X])
+        var d=idx<s.length ? s.charAt(idx) : " ";
+        var o=obj[z][y][x], t=T.floor;
+        switch(d){
+          case "p":
+            player={x:x,y:y,z:z};
+            extraP.push({x:x,y:y,z:z});
+            break;                          // 瓦片保持地板(与 C 一致)
+          case ">": t=T.arrow_e; break;
+          case "^": t=T.arrow_n; break;
+          case "<": t=T.arrow_w; break;
+          case "v": t=T.arrow_s; break;
+          case "=": t=T.recep; break;
+          case "D": t=T.door; break;
+          case "#": t=T.stairs; break;
+          case "/": o.type=O.refl; o.dir=1; break;
+          case "z": egg={x:x,y:y}; break;
+          case "*": o.type=O.stone; break;
+          case "-": o.type=O.wand; break;
+          case "1": case "2": case "3": case "4": case "5":
+          case "6": case "7": case "8": case "9": case "0":
+            o.type=O.gem; o.dir=0; t=T.recep;
+            break;
+          case "@": case "%":
+            o.type=O.gem; o.dir=0;           // 裸宝石,无底座
+            break;
+          case "&": o.type=O.rover; o.dir=DIR_E; break;
+          case "r": case "R": case "w": case "P":
+          case "g": case "G": case "H":
+          case "y": case "Y": case "L":
+          case "t": case "T": case "V": case "j":
+          case "o": case "O": case "A": case "a":
+            var li=LIGHTS.indexOf(d);
+            o.type=O.projector; o.color=LIGHTDATA[li].c; o.dir=LIGHTDATA[li].d;
+            break;
+          case ".": case " ": break;
+          default: t=T.wall; break;         // 与 C 的 default → wall 一致
+        }
+        tile[z][y][x]=t;
+      }
+    }
+  }
+
+  // 巢穴下方铺蛋瓦片(C: y 1..1, x 0..2)
+  if(egg){
+    for(x=0;x<3;x++){
+      tile[0][egg.y+1][egg.x-1+x]=EGG_BASE + 1*3 + x;
+    }
+  }
+
+  // rover 初始方向:找相邻箭头(C 同规则)
+  for(z=0;z<2;z++){
+    for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+      if(obj[z][y][x].type===O.rover){
+        for(var d=0;d<4;d++){
+          var ny=y-YD[d], nx=x-XD[d];
+          ny=(ny+WH)%WH; nx=(nx+WW)%WW;
+          if(tile[z][ny][nx]===T.arrow_e+d){ obj[z][y][x].dir=d; break; }
+        }
+      }
+    }
+  }
+
+  return {tile:tile, obj:obj, player:player, egg:egg, extraP:extraP};
+}
+
+// ---------- 供电与光束(移植 compute_powered / propagate_light) ----------
+function computePowered(z,map){
+  var pw=[]; var y,x;
+  for(var ry=0;ry<NY;ry++){ pw[ry]=new Array(NX).fill(0); }
+  for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+    if(map.tile[z][y][x]===T.recep) pw[Math.floor(y/SY)][Math.floor(x/SX)]=1;
+  }
+  for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+    if(map.tile[z][y][x]===T.recep && map.obj[z][y][x].type!==O.gem)
+      pw[Math.floor(y/SY)][Math.floor(x/SX)]=0;
+  }
+  return pw;
+}
+
+function propagate(z,map,pw){
+  // L[y][x][d]=颜色 或 -1;any[y][x]=0/1
+  var L=[], any=[], y,x;
+  for(y=0;y<WH;y++){ L[y]=[]; any[y]=new Array(WW).fill(0);
+    for(x=0;x<WW;x++) L[y].push([-1,-1,-1,-1]); }
+
+  function wrapX(a){ return ((a%WW)+WW)%WW; }   // 卷绕(与 C 的 WRAP_X/WRAP_Y 一致)
+  function wrapY(a){ return ((a%WH)+WH)%WH; }
+
+  for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+    var o=map.obj[z][y][x];
+    if(o.type!==O.projector) continue;
+    if(!pw[Math.floor(y/SY)][Math.floor(x/SX)]) continue;   // 未通电
+    var dir=o.dir, ax=x, dx=XD[o.dir], ay=y, dy=YD[o.dir];
+    for(;;){
+      ax=wrapX(ax+dx); ay=wrapY(ay+dy);
+      if(map.tile[z][ay][ax]===T.door) break;
+      if(map.obj[z][ay][ax].type===O.refl){
+        if(map.obj[z][ay][ax].dir===0) dir^=1; else dir^=3;   // 与 C 一致
+        dx=XD[dir]; dy=YD[dir];
+      } else {
+        if(map.obj[z][ay][ax].type!==O.empty) break;
+      }
+      L[ay][ax][dir]=o.color;
+      any[ay][ax]=1;
+    }
+  }
+  return {L:L, any:any};
+}
+
+// ---------- 渲染 ----------
+var tintCache={};  // key: s_t_rgb
+
+function getTintedCell(s,t,tint){
+  if(!tint) return cellFrom(s,t);
+  var key=s+"_"+t+"_"+tint[0]+","+tint[1]+","+tint[2];
+  var c=tintCache[key];
+  if(c) return c;
+  c=cellFrom(s,t);
+  var cc=document.createElement("canvas"); cc.width=CELL; cc.height=CELL;
+  var cx=cc.getContext("2d");
+  cx.drawImage(c,0,0);
+  cx.globalCompositeOperation="multiply";
+  cx.fillStyle="rgb("+tint[0]+","+tint[1]+","+tint[2]+")";
+  cx.fillRect(0,0,CELL,CELL);
+  tintCache[key]=cc;
+  return cc;
+}
+
+function cellFrom(s,t){
+  var key="c_"+s+"_"+t;
+  var c=tintCache[key];
+  if(c) return c;
+  c=document.createElement("canvas"); c.width=CELL; c.height=CELL;
+  c.getContext("2d").drawImage(img, s*CELL,t*CELL,CELL,CELL, 0,0,CELL,CELL);
+  tintCache[key]=c;
+  return c;
+}
+
+function render(ctx,k,map,opts){
+  var z=opts.z, i,x,y,rx,ry;
+  ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+  ctx.imageSmoothingEnabled=false;
+
+  // 房间通电表(光束需要)
+  var pw = opts.beams ? computePowered(z,map) : null;
+  var light = opts.beams ? propagate(z,map,pw) : null;
+
+  for(y=0;y<WH;y++){
+    for(x=0;x<WW;x++){
+      var t=map.tile[z][y][x];
+      rx=Math.floor(x/SX); ry=Math.floor(y/SY);
+      var sp=TILE_SPR[t].slice();
+      if(t===T.wall && ((rx^ry)&1)) sp[0]=7;      // 墙随房间奇偶换格(与 draw_world 一致)
+      var tint = opts.tint ? roomPalette[z][ry][rx] : null;
+      var cell = getTintedCell(sp[0],sp[1],tint);
+      ctx.drawImage(cell, x*CELL*k, y*CELL*k, CELL*k, CELL*k);
+
+      // 邻墙边线高光(t >= floor 才画,与 C 一致)
+      if(t>=T.floor && opts.tint){
+        var check=[ [x+1,y,1,0], [x-1,y,3,0], [x,y+1,4,0], [x,y-1,2,0] ];
+        for(i=0;i<4;i++){
+          var mx=check[i][0], my=check[i][1];
+          mx=(mx+WW)%WW; my=(my+WH)%WH;
+          if(map.tile[z][my][mx]===T.wall){
+            var ec=getTintedCell(check[i][2],check[i][3],roomPalette[z][ry][rx]);
+            ctx.drawImage(ec, x*CELL*k, y*CELL*k, CELL*k, CELL*k);
+          }
+        }
+      }
+    }
+  }
+
+  // 物体(不调色,与游戏“未照亮=白色”一致)
+  for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+    var o=map.obj[z][y][x];
+    if(o.type===O.empty) continue;
+    var oc=null, dt=0, ds=0;
+    switch(o.type){
+      case O.projector: oc=cellFrom(0+o.dir,2); break;
+      case O.gem:       oc=cellFrom(0,4); break;
+      case O.refl:      oc=cellFrom(5+o.dir,6); break;
+      case O.rover:     oc=cellFrom(6+ds,2+o.dir); break;   // ds=0 静态帧
+      case O.stone:     oc=cellFrom(2,1); break;
+      case O.wand:      oc=cellFrom(2,4); break;
+      default: break;
+    }
+    if(oc) ctx.drawImage(oc, x*CELL*k, y*CELL*k, CELL*k, CELL*k);
+  }
+
+  // 光束(加法混合,近似原版辉光)
+  if(opts.beams && light){
+    for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+      if(!light.any[y][x]) continue;
+      var n=0, r=0,gg=0,b=0;
+      for(var d=0;d<4;d++){
+        if(light.L[y][x][d]>=0){
+          var pc=powers[light.L[y][x][d]]; r+=pc[0]; gg+=pc[1]; b+=pc[2]; n++;
+        }
+      }
+      if(n){
+        var a=Math.min(0.42, 0.10+0.06*n);
+        ctx.globalAlpha=a;
+        ctx.fillStyle="rgb("+Math.round(r/n)+","+Math.round(gg/n)+","+Math.round(b/n)+")";
+        ctx.globalCompositeOperation="lighter";
+        ctx.fillRect(x*CELL*k, y*CELL*k, CELL*k, CELL*k);
+        ctx.globalCompositeOperation="source-over";
+        ctx.globalAlpha=1;
+      }
+    }
+    // 通电投影器头部彩色标记
+    for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+      var o2=map.obj[z][y][x];
+      if(o2.type===O.projector && pw && pw[Math.floor(y/SY)][Math.floor(x/SX)]){
+        var pc2=powers[o2.color];
+        ctx.globalAlpha=0.55; ctx.globalCompositeOperation="lighter";
+        ctx.fillStyle="rgb("+pc2[0]+","+pc2[1]+","+pc2[2]+")";
+        var cx=x*CELL*k+CELL*k*0.28, cy=y*CELL*k+CELL*k*0.28, s2=CELL*k*0.44;
+        ctx.fillRect(cx,cy,s2,s2);
+        ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
+      }
+    }
+  }
+
+  // 标注
+  if(opts.mark){
+    if(map.player && map.player.z===z){
+      ctx.strokeStyle="#ffd479"; ctx.lineWidth=Math.max(2,k);
+      ctx.strokeRect(map.player.x*CELL*k+1, map.player.y*CELL*k+1, CELL*k-2, CELL*k-2);
+    }
+    if(map.extraP){
+      map.extraP.forEach(function(p){
+        if(p.z===z){
+          ctx.fillStyle="rgba(255,255,255,0.5)";
+          ctx.fillRect(p.x*CELL*k+CELL*k*0.42, p.y*CELL*k+CELL*k*0.42, CELL*k*0.16, CELL*k*0.16);
+        }
+      });
+    }
+    if(map.egg && z===0){
+      ctx.strokeStyle="#7ee0a3"; ctx.lineWidth=1;
+      ctx.strokeRect(map.egg.x*CELL*k+1, map.egg.y*CELL*k+1, CELL*k-2, CELL*k-2);
+    }
+  }
+
+  // 房间网格
+  if(opts.grid){
+    ctx.strokeStyle="rgba(255,255,255,0.18)"; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(x=0;x<=NX;x++){ var gx=x*SX*CELL*k; ctx.moveTo(gx+0.5,0); ctx.lineTo(gx+0.5,WH*CELL*k); }
+    for(y=0;y<=NY;y++){ var gy=y*SY*CELL*k; ctx.moveTo(0,gy+0.5); ctx.lineTo(WW*CELL*k,gy+0.5); }
+    ctx.stroke();
+  }
+}
+
+// ---------- 主流程 ----------
+var RAW=window.PROMESST_MAP_RAW;
+var canvas=document.getElementById("cv");
+var ctx=canvas.getContext("2d");
+var map=null, curZ=0, curK=2;
+var opts={ z:0, beams:true, grid:true, tint:true, mark:true };
+
+function err(msg){
+  var e=document.getElementById("err");
+  e.style.display="block"; e.textContent=msg;
+}
+
+function setSize(k){
+  curK=k;
+  canvas.width=WW*CELL*k; canvas.height=WH*CELL*k;
+  canvas.style.width=canvas.width+"px";
+  canvas.style.height=canvas.height+"px";
+  redraw();
+}
+function redraw(){
+  if(!map || !img) return;
+  opts.z=curZ;
+  render(ctx,curK,map,opts);
+  updateInfo(null);
+  updateStats();
+}
+
+function updateStats(){
+  var z=curZ, counts={};
+  var y,x;
+  for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+    var t=map.tile[z][y][x], o=map.obj[z][y][x];
+    counts["墙"]=counts["墙"]||0; counts["地板"]=counts["地板"]||0;
+    if(t===T.wall) counts["墙"]++; else if(t===T.floor) counts["地板"]++;
+    if(t===T.door) counts["门"]=(counts["门"]||0)+1;
+    if(t===T.recep) counts["底座"]=(counts["底座"]||0)+1;
+    if(t===T.stairs) counts["楼梯"]=(counts["楼梯"]||0)+1;
+    if(o.type===O.gem) counts["宝石"]=(counts["宝石"]||0)+1;
+    if(o.type===O.stone) counts["石块"]=(counts["石块"]||0)+1;
+    if(o.type===O.projector) counts["投影器"]=(counts["投影器"]||0)+1;
+    if(o.type===O.rover) counts["rover"]=(counts["rover"]||0)+1;
+    if(o.type===O.refl) counts["反射镜"]=(counts["反射镜"]||0)+1;
+    if(o.type===O.wand) counts["魔杖"]=(counts["魔杖"]||0)+1;
+  }
+  var s="";
+  Object.keys(counts).forEach(function(k){ s+=k+" "+counts[k]+"　"; });
+  document.getElementById("stats").textContent="本层统计: "+s;
+}
+
+var infoBox=document.getElementById("info");
+function updateInfo(cellInfo){
+  if(!cellInfo){
+    infoBox.innerHTML="(鼠标悬停查看格子信息) · 当前层 Z"+curZ+" · "+
+      (opts.beams?"光束:开":"光束:关");
+    return;
+  }
+  infoBox.innerHTML=cellInfo;
+}
+
+function cellAt(mx,my){
+  var z=curZ;
+  var x=Math.floor(mx/(CELL*curK));
+  var y=Math.floor(my/(CELL*curK));
+  if(x<0||y<0||x>=WW||y>=WH) return null;
+  var t=map.tile[z][y][x], o=map.obj[z][y][x];
+  var rx=Math.floor(x/SX), ry=Math.floor(y/SY);
+  var tname=["墙","门","开门","地板","底座","碎石","箭头E","箭头N","箭头W","箭头S","楼梯","蛋"][t] || "蛋"+t;
+  var parts=["Z"+z+" · 格("+x+","+y+") · 房间("+rx+","+ry+") · 瓦片=<b>"+tname+"</b>"];
+  if(o.type!==O.empty){
+    var oname=["—","石块","宝石","投影器","魔杖","反射镜","rover"][o.type];
+    parts.push("物体=<b>"+oname+"</b>");
+    if(o.type===O.projector) parts.push("色=<b>"+CNAMES[o.color]+"</b> 向="+["E","N","W","S"][o.dir]);
+    if(o.type===O.rover)     parts.push("向="+["E","N","W","S"][o.dir]);
+    if(o.type===O.refl)      parts.push("姿="+(o.dir?"\\":"/"));
+  }
+  return parts.join(" · ");
+}
+
+// ---------- 事件与 UI ----------
+document.getElementById("z0btn").addEventListener("click",function(){ curZ=0; syncBtn(); redraw(); });
+document.getElementById("z1btn").addEventListener("click",function(){ curZ=1; syncBtn(); redraw(); });
+function syncBtn(){
+  document.getElementById("z0btn").classList.toggle("on",curZ===0);
+  document.getElementById("z1btn").classList.toggle("on",curZ===1);
+}
+document.getElementById("ckBeams").addEventListener("change",function(e){ opts.beams=e.target.checked; redraw(); });
+document.getElementById("ckGrid").addEventListener("change",function(e){ opts.grid=e.target.checked; redraw(); });
+document.getElementById("ckTint").addEventListener("change",function(e){ opts.tint=e.target.checked; redraw(); });
+document.getElementById("ckMark").addEventListener("change",function(e){ opts.mark=e.target.checked; redraw(); });
+document.getElementById("scale").addEventListener("change",function(e){ setSize(parseInt(e.target.value,10)); });
+document.getElementById("dl").addEventListener("click",function(){
+  var k=6, off=document.createElement("canvas");
+  off.width=WW*CELL*k; off.height=WH*CELL*k;
+  render(off.getContext("2d"),k,map,opts);
+  var a=document.createElement("a");
+  a.href=off.toDataURL("image/png");
+  a.download="promesst2-map-z"+curZ+"-"+WW+"x"+WH+".png";
+  a.click();
+});
+canvas.addEventListener("mousemove",function(e){
+  var r=canvas.getBoundingClientRect();
+  var mx=(e.clientX-r.left)*(canvas.width/r.width);
+  var my=(e.clientY-r.top)*(canvas.height/r.height);
+  var info=cellAt(mx,my);
+  updateInfo(info);
+});
+canvas.addEventListener("mouseleave",function(){ updateInfo(null); });
+
+// 图例:投影器字母→颜色
+(function(){
+  var el=document.getElementById("projLegend");
+  var html="";
+  for(var i=0;i<LIGHTS.length;i++){
+    html+='<span style="color:'+CCOL[LIGHTDATA[i].c]+'"><code>'+LIGHTS.charAt(i)+"</code> "+
+          CNAMES[LIGHTDATA[i].c]+"·"+["E","N","W","S"][LIGHTDATA[i].d]+"</span>";
+  }
+  el.innerHTML=html;
+})();
+
+// ---------- 启动 ----------
+(function boot(){
+  try{
+    if(!RAW || RAW.length!==24){ err("map-data.js 数据异常:期望 24 行,实际 "+(RAW?RAW.length:"未定义")+"。"); return; }
+    var bad=0; RAW.forEach(function(r,ri){ if(!r||r.length<2||r[0].length<27||r[1].length<27) bad++; });
+    if(bad){ err("map-data.js 有 "+bad+" 行长度异常(需要 >=27)。"); return; }
+
+    img=new Image();
+    img.onload=function(){
+      try{
+        var tmp=document.createElement("canvas"); tmp.width=ATLAS; tmp.height=ATLAS;
+        imgCtx=tmp.getContext("2d"); imgCtx.drawImage(img,0,0);
+        imgData=imgCtx.getImageData(0,0,ATLAS,ATLAS);
+        computePalette();
+        map=parseMap();
+        if(!map.player) err("警告:未找到出生点 p?");
+        setSize(2);
+        syncBtn();
+      }catch(ex){ err("渲染初始化失败:\n"+ex.message+"\n若通过 file:// 打开可能出现跨域限制,请用 Live Server 等本地服务器打开。"); }
+    };
+    img.onerror=function(){ err("无法加载 ./sprites.png —— 请确认与 map-data.js 同目录。"); };
+    img.src="./sprites.png";
+  }catch(ex){ err("启动失败:"+ex.message); }
+})();
+</script>
+</body>
+</html>
