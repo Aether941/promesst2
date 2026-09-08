@@ -6,42 +6,67 @@
   <title>PROMESST 2 · 源码导读</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
   <style>
-    /* 略调主题色,呼应游戏紫/橙配色 */
-    :root{
-      --theme-color:#b07cff;
-      --theme-color-dark:#8f5ce0;
-    }
+    :root{ --theme-color:#b07cff; --theme-color-dark:#8f5ce0; }
   </style>
 </head>
 <body>
   <div id="app"></div>
+
   <script>
     window.$docsify = {
+      // 基础
       name: 'PROMESST 2 · 源码导读',
-      nameLink: '/',
-      repo: '',
+      el: '#app',
+      // 路由:显式使用 hash 模式(与 Live Server / 任意静态服务器兼容)
+      routerMode: 'hash',
+      // 目录
       loadSidebar: true,
       subMaxLevel: 3,
       maxLevel: 4,
-      coverpage: true,
+      // 封面:先关闭(封面/首页渲染在部分静态服务器上会出问题);
+      // 想恢复把下面改成 true 即可(_coverpage.md 已备好)
+      coverpage: false,
       auto2top: true,
       themeColor: '#b07cff',
+      formatUpdated: '{YYYY}-{MM}-{DD}',
       search: {
         placeholder: '搜索(函数 / 行号 / 关键字)',
         noData: '没有匹配结果',
         depth: 4
-      },
-      formatUpdated: '{YYYY}-{MM}-{DD}',
-      alias: {
-        '/_coverpage': '/_coverpage.md'
       }
     };
   </script>
+
   <!-- docsify 核心(CDN script 引入) -->
   <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
   <!-- 搜索插件 -->
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
-  <!-- 代码高亮插件(可选) -->
-  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/prismjs.min.js"></script>
+
+  <!-- 自诊断:docsify 加载失败或 JS 报错时,在左下角显示原因 -->
+  <script>
+    (function () {
+      function badge(msg) {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:999999;max-width:75vw;' +
+          'background:#2a0f14;color:#ffb4bc;border:1px solid #ff6b7a;border-radius:8px;' +
+          'padding:8px 12px;font:12px/1.6 Consolas,monospace;white-space:pre-wrap;box-shadow:0 2px 10px rgba(0,0,0,.5)';
+        d.textContent = '[docsify 诊断] ' + msg;
+        document.body.appendChild(d);
+      }
+      window.addEventListener('error', function (e) {
+        badge('JS 错误: ' + e.message + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        badge('异步错误: ' + (e.reason && (e.reason.message || e.reason) || e.reason));
+      });
+      setTimeout(function () {
+        var app = document.getElementById('app');
+        var ok = app && app.querySelector('.markdown-section, .sidebar, .cover, .search');
+        if (!ok) {
+          badge('docsify 尚未渲染出页面 —— 可能是 CDN(jsdelivr)加载过慢或被拦截。\n请 Ctrl+F5 强刷重试;若仍失败,可直接使用同目录下的 HTML 版文档。');
+        }
+      }, 10000);
+    })();
+  </script>
 </body>
 </html>
