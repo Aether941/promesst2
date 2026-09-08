@@ -303,6 +303,7 @@ function shoot(){
 
 // 调试开关(顶栏“调试”启用):noclip 穿墙、直接给魔杖
 var noclip=false, debugOn=false;
+var dbgMsg="";   // 最近一次移动的判定诊断(调试行显示)
 function cheatWand(){ game.has_wand=true; game.num_gems=30; }
 function cheatNoclip(){ noclip=!noclip; }
 
@@ -337,9 +338,20 @@ function tryMove(x,y){
   }
 
   var L=FEATURE_LIGHT ? lightCache[z] : null;
-  function isTravelCell(cx,cy){
-    return L && (L.L[cy][cx][proposed_pdir]===POW_travel ||
-                 L.L[cy][cx][proposed_pdir^2]===POW_travel);
+  function isTravelCell(r,c){               // (行,列),与 L[r][c] 一致
+    return L && (L.L[r][c][proposed_pdir]===POW_travel ||
+                 L.L[r][c][proposed_pdir^2]===POW_travel);
+  }
+  // 移动诊断(调试):起点是否紫光 + 前方连续紫光格数
+  if(debugOn && L){
+    var dName= x ? (x>0?"E":"W") : (y>0?"S":"N");
+    var cnt=0, cxa=game.px+x, cya=game.py+y;
+    while(cnt<WW*WH && isTravelCell(cya,cxa)){
+      cnt++; cxa=wrapX(cxa+x); cya=wrapY(cya+y);
+    }
+    dbgMsg="["+dName+"] 起点紫:"+(isTravelCell(game.py,game.px)?"是":"否")
+           +" 前方连续紫格:"+cnt+" → "
+           +(cnt>0?"应远行至第 "+cnt+" 格":"起点即终点,退化为普通移动");
   }
 
   // ---- 紫光远行(照 C:只判定终点,中途仅受“仍在紫光上”约束) ----
@@ -701,6 +713,17 @@ function refreshHud(){
     for(var i=0;i<8;i++) if(ab[i]) names.push(CNAMES[i]);
     var as=names.length?names.join(" "):"—";
     if(hud.ab!==as){ hud.ab=as; byId("bab").textContent=as; }
+    // 调试:玩家格四向入射光(E/N/W/S 各是什么颜色),用于核对紫光远行
+    if(debugOn && lightCache[z]){
+      var L=lightCache[z].L;
+      var parts=[];
+      for(var d=0;d<4;d++){
+        var v=L[game.py][game.px][d];
+        parts.push(["E","N","W","S"][d]+"="+(v>=0?CNAMES[v]:"—"));
+      }
+      byId("dbgLights").textContent="入射光:"+parts.join(" ");
+      byId("dbgMove").textContent=dbgMsg||"—";
+    }
   }
 }
 function byId(id){ return document.getElementById(id); }
