@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PROMESST 2 · 网页版移植 — M2(移动)</title>
+<title>PROMESST 2 · 网页版移植 — M3(光照/能力/射击)</title>
 <style>
   :root{ --bg:#0d1017; --panel:#171d2d; --line:#2b3450; --txt:#d9dee9; --dim:#8b93a7; --accent:#b07cff; }
   *{box-sizing:border-box}
@@ -41,8 +41,8 @@
 </head>
 <body>
 <header>
-  <h1>PROMESST 2 · 网页版 — M2 里程碑(移动 / 碰撞 / 整幅地图)</h1>
-  <p>按 <code>docs-map-port/README.md</code> v4 移植。M2 范围:整幅当前层地图、玩家移动、原版碰撞规则(无能力阶段)、80ms 步进、缩放/跟随。</p>
+  <h1>PROMESST 2 · 网页版 — M3 里程碑(光束 / 5 色能力 / X 射击)</h1>
+  <p>按 <code>docs-map-port/README.md</code> v4 移植。M3 范围:供电与光束渲染、站进光束获得能力(红开门/绿穿墙/黄碎石/橙双步/紫远行)、<kbd>X</kbd> 射击改向。</p>
 </header>
 
 <div id="err"></div>
@@ -52,6 +52,7 @@
   <span class="badge">格 <b id="bxy">(?, ?)</b></span>
   <span class="badge">房间 <b id="broom">(?, ?)</b></span>
   <span class="badge">朝向 <b id="bfacing">—</b></span>
+  <span class="badge">能力 <b id="bab">—</b></span>
   <span class="badge">步数 <b id="bsteps">0</b></span>
   <span class="sp"></span>
   <label class="chk"><input type="checkbox" id="ckFollow" checked>跟随玩家</label>
@@ -66,8 +67,10 @@
 
 <div id="info">
   <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 ·
-  <kbd>#</kbd> = 楼梯(两层之间的阶梯,踩上去即切层,同坐标上下楼) ·
-  能力系统在 M3 启用,当前为“无能力”碰撞(门/石块等均被挡)。出生点:Z0 (12,20)。
+  <kbd>X</kbd> 射击(魔杖:把照到你的投影器转向你的朝向) ·
+  <kbd>V</kbd> 宝石拾/放(M4) · <kbd>Z</kbd> 撤销(M5) ·
+  <kbd>#</kbd> 楼梯切层 ·
+  “能力”一栏显示你当前踩中的光束颜色。出生点:Z0 (12,20)。
 </div>
 
 <script src="./map-data.js"></script>

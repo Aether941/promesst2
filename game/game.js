@@ -46,7 +46,7 @@ var CNAMES=["红","绿","蓝","橙","黄","紫","青","粉"];
 var CCOL =["#ff6b6b","#59e06a","#5aa9ff","#ff9d5c","#ffe66d","#b07cff","#5ee8d8","#ff8cd8"];
 
 // ---------- 里程碑特性开关 ----------
-var FEATURE_LIGHT=false;   // M3 打开:供电+光束+能力
+var FEATURE_LIGHT=true;    // M3:供电+光束+能力 已启用
 var FEATURE_ROVER=false;   // M4 打开
 
 // ---------- 数据与采样 ----------
@@ -213,58 +213,162 @@ function reset(){
   game.ability_flag=0; game.num_gems=0; game.gems_stored=-1;
   game.has_wand=false; game.num_zaps=0; game.egg_timer=0; game.steps=0;
   q=null; held=[]; checkpoint=null;
+  lightCache=[null,null]; lightDirty=true;
   onViewChanged(true);
 }
 
-// ---------- 能力判定(M2 阶段恒空;M3 打开 FEATURE_LIGHT 后生效) ----------
+// ---------- 光照缓存 / 能力判定 / 射击(移植 compute_powered+propagate 应用层) ----------
+var lightCache=[null,null];   // lightCache[z]={pw,L,any}
+var lightDirty=true;
+
+function wrapX(a){ return ((a%WW)+WW)%WW; }
+function wrapY(a){ return ((a%WH)+WH)%WH; }
+
+function ensureLight(){
+  if(!FEATURE_LIGHT) return;
+  var z=game.pz;
+  if(!lightCache[z]||lightDirty){
+    var pw=computePowered(z,world);
+    lightCache[z]=propagate(z,world,pw);
+    lightCache[z].pw=pw;
+    lightDirty=false;
+  }
+}
+
+// 能力判定(移植 get_abilities,L714–721):站在玩家格,统计四向入射光颜色
 function getAbilities(out){
   for(var i=0;i<8;i++) out[i]=0;
   if(!FEATURE_LIGHT) return out;
-  // 由当前层光照缓存计算(实现随 M3 一并补全)
+  ensureLight();
+  var L=lightCache[game.pz].L;
+  for(var d=0;d<4;d++){
+    var c=L[game.py][game.px][d];
+    if(c>=0) out[c]+=1;
+  }
   return out;
 }
 
-// ---------- 移动(移植 move(),L742–853;去除跨房撤销打点/seen) ----------
+// 找出所有照到玩家格的有电投影器(移植 find_lights_on_player,L538–577)
+function findLightsOnPlayer(){
+  var out=[];
+  if(!FEATURE_LIGHT) return out;
+  ensureLight();
+  var pw=lightCache[game.pz].pw, z=game.pz;
+  var y,x;
+  for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+    var o=world.obj[z][y][x];
+    if(o.type!==O.projector) continue;
+    if(!pw[(y/SY)|0][(x/SX)|0]) continue;      // 未通电不发光
+    var dir=o.dir, ax=x, dx=XD[o.dir], ay=y, dy=YD[o.dir];
+    for(;;){
+      ax=wrapX(ax+dx); ay=wrapY(ay+dy);
+      if(ax===game.px && ay===game.py) out.push({x:x,y:y});
+      if(world.tile[z][ay][ax]===T.door) break;
+      if(world.obj[z][ay][ax].type===O.refl){
+        if(world.obj[z][ay][ax].dir===0) dir^=1; else dir^=3;
+        dx=XD[dir]; dy=YD[dir];
+      } else {
+        if(world.obj[z][ay][ax].type!==O.empty) break;
+      }
+    }
+  }
+  return out;
+}
+
+// X 键:射击 —— 把照到玩家的投影器重定向到玩家朝向(移植 shoot,L1026–1051)
+function shoot(){
+  if(!game.has_wand) return false;
+  var z=game.pz, any=false;
+  var hits=findLightsOnPlayer();
+  for(var i=0;i<hits.length;i++){
+    var o=world.obj[z][hits[i].y][hits[i].x];
+    if(o.type===O.projector && o.dir!==game.pdir){
+      o.dir=game.pdir; any=true;
+    }
+  }
+  if(any){ game.num_zaps++; lightDirty=true; return true; }
+  return false;
+}
+
+// ---------- 移动(移植 move(),L742–853;含紫光远行/橙光双步/各能力分支) ----------
 function tryMove(x,y){
+  if(FEATURE_LIGHT) ensureLight();
   var abilities=[0,0,0,0,0,0,0,0];
   getAbilities(abilities);
   var proposed_pdir = x ? (x<0?DIR_W:DIR_E) : (y<0?DIR_N:DIR_S);
-  var travel=false;
-  var gx, gy;
+  var L=FEATURE_LIGHT ? lightCache[game.pz] : null;
+  var used=game.ability_flag;
+  function setUsed(b){ used |= (1<<b); }
+  var gx,gy, travel=false;
 
-  // 紫光远行:FEATURE_LIGHT=false 时恒不触发
-  if(travel){ return false; }
-
-  if(abilities[POW_double]){
-    x *= (1<<abilities[POW_double]); y *= (1<<abilities[POW_double]);
+  function isTravelCell(cx,cy){
+    return L && (L.L[cy][cx][proposed_pdir]===POW_travel ||
+                 L.L[cy][cx][proposed_pdir^2]===POW_travel);
   }
-  gx=((game.px+x)%WW+WW)%WW;
-  gy=((game.py+y)%WH+WH)%WH;
 
-  var tgtTile=world.tile[game.pz][gy][gx];
-  var tgtObj=world.obj[game.pz][gy][gx];
+  // 紫光远行:沿光束滑到“最后一个仍在紫光上”的格子
+  if(L && isTravelCell(game.py,game.px)){
+    gx=wrapX(game.px+x); gy=wrapY(game.py+y);
+    while(isTravelCell(gy,gx)){ gx=wrapX(gx+x); gy=wrapY(gy+y); }
+    gx=wrapX(gx-x); gy=wrapY(gy-y);
+    if(gx!==game.px || gy!==game.py){ setUsed(POW_travel); travel=true; }
+  }
+  if(!travel){
+    if(abilities[POW_double]){
+      x*=(1<<abilities[POW_double]); y*=(1<<abilities[POW_double]);
+      setUsed(POW_double);
+    }
+    gx=wrapX(game.px+x); gy=wrapY(game.py+y);
+  }
 
-  if(tgtObj.type===O.projector) return false;           // 投影器不可站
-  if(tgtTile===T.wall){ if(!abilities[POW_walls]) return false; }
-  if(tgtTile===T.door){ if(!abilities[POW_doors]) return false; }
+  var z=game.pz;
+  // C:若当前站在墙内且无绿光 → 卡住(L787–792)
+  if(world.tile[z][game.py][game.px]===T.wall){
+    if(!abilities[POW_walls]) return false;
+    setUsed(POW_walls);
+  }
+  var tgtTile=world.tile[z][gy][gx];
+  var tgtObj=world.obj[z][gy][gx];
+
+  // 目标格判定(顺序照抄 move())
+  if(tgtObj.type===O.projector) return false;               // 不可站
+  if(tgtTile===T.wall){ if(!abilities[POW_walls]) return false; setUsed(POW_walls); }
+  if(tgtTile===T.door){
+    if(!abilities[POW_doors]) return false;
+    setUsed(POW_doors);
+    game.ability_flag=used;
+    world.tile[z][gy][gx]=T.opendoor;                        // 开门,不前进
+    game.pdir=proposed_pdir;
+    lightDirty=true;
+    return "open";
+  }
   if(tgtObj.type===O.refl) return false;
-  if(tgtObj.type===O.stone){ if(!abilities[POW_destroy]) return false; }
+  if(tgtObj.type===O.stone){
+    if(!abilities[POW_destroy]) return false;
+    setUsed(POW_destroy);
+    game.ability_flag=used;
+    tgtObj.type=O.empty;                                     // 原地砸碎,不前进
+    game.pdir=proposed_pdir;
+    lightDirty=true;
+    return "destroy";
+  }
 
   var got_wand=false;
   if(tgtObj.type===O.wand){ game.has_wand=true; tgtObj.type=O.empty; got_wand=true; }
 
-  // 楼梯切层
-  var nz=game.pz;
-  if(tgtTile===T.stairs) nz=(game.pz+1)%2;
+  game.ability_flag=used;
+  var nz=z;
+  if(tgtTile===T.stairs) nz=(z+1)%2;                         // 楼梯切层
 
   game.fromX=game.px; game.fromY=game.py;
   game.px=gx; game.py=gy; game.pz=nz;
   game.pdir=proposed_pdir;
   game.player_timer=80;
   game.steps++;
+  if(nz!==z) lightDirty=true;
   if(got_wand){ checkpoint=copyWorld(); checkpoint.state=snapshotState(); }
   onViewChanged(false);
-  return true;
+  return "move";
 }
 
 function snapshotState(){
@@ -276,7 +380,7 @@ function snapshotState(){
   };
 }
 
-// ---------- 计时器步进(移植 timestep 子集;完整版随 M3–M6 扩充) ----------
+// ---------- 计时器步进(移植 timestep 子集;完整版随 M4–M6 扩充) ----------
 function update(ms){
   if(game.player_timer>0){
     game.player_timer-=ms;
@@ -286,12 +390,13 @@ function update(ms){
     var ch=null;
     if(q){ ch=q; q=null; }
     else if(held.length){ ch=held[held.length-1]; }
-    if(ch){
-      var dx=0,dy=0;
-      if(ch==="a") dx=-1; else if(ch==="d") dx=1;
-      else if(ch==="w") dy=-1; else if(ch==="s") dy=1;
-      if(dx||dy) tryMove(dx,dy);
-    }
+    if(!ch) return;
+    var dx=0,dy=0;
+    if(ch==="a") dx=-1; else if(ch==="d") dx=1;
+    else if(ch==="w") dy=-1; else if(ch==="s") dy=1;
+    if(dx||dy){ tryMove(dx,dy); }
+    else if(ch==="x"){ shoot(); }
+    // v=宝石拾放(M4)、z=撤销(M5)、c=反射镜(逻辑保留)——后续里程碑
   }
 }
 
@@ -341,6 +446,41 @@ function render(){
     if(oc) ctx.drawImage(oc, x*K,y*K,K,K);
   }
 
+  // 光束辉光(加法混合;FEATURE_LIGHT 已开)
+  if(FEATURE_LIGHT){
+    ensureLight();
+    var lit=lightCache[z];
+    if(lit){
+      for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+        if(!lit.any[y][x]) continue;
+        var n=0, rr=0, gg=0, bb=0;
+        for(var d=0;d<4;d++){
+          var cc=lit.L[y][x][d];
+          if(cc>=0){ var pc=powers[cc]; rr+=pc[0]; gg+=pc[1]; bb+=pc[2]; n++; }
+        }
+        if(n){
+          ctx.globalAlpha=Math.min(0.42,0.10+0.06*n);
+          ctx.fillStyle="rgb("+Math.round(rr/n)+","+Math.round(gg/n)+","+Math.round(bb/n)+")";
+          ctx.globalCompositeOperation="lighter";
+          ctx.fillRect(x*K,y*K,K,K);
+          ctx.globalCompositeOperation="source-over";
+          ctx.globalAlpha=1;
+        }
+      }
+      // 通电投影器头部彩色标记
+      for(y=0;y<WH;y++) for(x=0;x<WW;x++){
+        var o2=world.obj[z][y][x];
+        if(o2.type===O.projector && lit.pw[(y/SY)|0][(x/SX)|0]){
+          var pc2=powers[o2.color];
+          ctx.globalAlpha=0.55; ctx.globalCompositeOperation="lighter";
+          ctx.fillStyle="rgb("+pc2[0]+","+pc2[1]+","+pc2[2]+")";
+          ctx.fillRect(x*K+K*0.28, y*K+K*0.28, K*0.44, K*0.44);
+          ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
+        }
+      }
+    }
+  }
+
   // 房间网格(开关在顶栏)
   if(showGrid){
     ctx.strokeStyle="rgba(255,255,255,0.55)";
@@ -370,7 +510,7 @@ function render(){
 function seamCross(a,b,n){ return Math.abs(a-b)>1; }
 
 // ---------- HUD ----------
-var hud={z:"",xy:"",room:"",face:"",steps:""};
+var hud={z:"",xy:"",room:"",face:"",steps:"",ab:""};
 function refreshHud(){
   var z=game.pz, x=game.px, y=game.py;
   var rx=(x/SX)|0, ry=(y/SY)|0;
@@ -381,6 +521,15 @@ function refreshHud(){
   if(hud.room!==rs){ hud.room=rs; byId("broom").textContent=rs; }
   if(hud.face!==fs){ hud.face=fs; byId("bfacing").textContent=fs; }
   if(hud.steps!==st){ hud.steps=st; byId("bsteps").textContent=st; }
+  // 当前可用能力(站在什么颜色的光束里)
+  if(FEATURE_LIGHT){
+    var ab=[0,0,0,0,0,0,0,0];
+    getAbilities(ab);
+    var names=[];
+    for(var i=0;i<8;i++) if(ab[i]) names.push(CNAMES[i]);
+    var as=names.length?names.join(" "):"—";
+    if(hud.ab!==as){ hud.ab=as; byId("bab").textContent=as; }
+  }
 }
 function byId(id){ return document.getElementById(id); }
 
@@ -415,7 +564,10 @@ window.addEventListener("keydown",function(e){
   if(c){ e.preventDefault(); q=c;
     var i=held.indexOf(c); if(i>=0) held.splice(i,1);
     held.push(c);
+    return;
   }
+  var a={KeyX:"x",KeyV:"v",KeyZ:"z",KeyC:"c"}[e.code];
+  if(a){ e.preventDefault(); q=a; }
 });
 window.addEventListener("keyup",function(e){
   var c=KEYMAP[e.code];
