@@ -44,6 +44,9 @@ var LIGHTDATA=[
 ];
 var CNAMES=["红","绿","蓝","橙","黄","紫","青","粉"];
 var CCOL =["#ff6b6b","#59e06a","#5aa9ff","#ff9d5c","#ffe66d","#b07cff","#5ee8d8","#ff8cd8"];
+// 调试显示用的中文名
+var TILE_CN=["墙","门","开门","地板","底座","碎石","箭E","箭N","箭W","箭S","楼梯","蛋1","蛋2","蛋3","蛋4","蛋5","蛋6","蛋7","蛋8"];
+var OBJ_CN=["空","石块","宝石","投影器","魔杖","反射镜","rover"];
 
 // ---------- 里程碑特性开关 ----------
 var FEATURE_LIGHT=true;    // M3:供电+光束+能力 已启用
@@ -186,8 +189,9 @@ var game={
   has_wand:false, num_zaps:0, egg_timer:0,
   steps:0
 };
-// 移动动画:提交时刻固定起止,单向推进,避免回退抖动
-var animFromX=0, animFromY=0, animToX=0, animToY=0, animT0=0, animOn=false;
+// 移动动画:原版只做“最后一格”的滑入(draw_world L2004–2009),
+// 这里只记录本次移动的起点,供“跨世界缝瞬移”判定;动画由 player_timer 驱动
+var animFromX=0, animFromY=0, animMove=false;
 var q=null;                   // 排队按键(单槽,同 C queued_key)
 var held=[];                  // 按住中的移动键(最近优先)
 var checkpoint=null;
@@ -214,26 +218,24 @@ function reset(){
   world=parseWorld();
   var p=world.player;
   game.px=p.x; game.py=p.y; game.pz=p.z; game.pdir=DIR_S;
-  game.player_timer=0; animOn=false;
+  game.player_timer=0; animMove=false;
   game.ability_flag=0; game.num_gems=0; game.gems_stored=-1;
   game.has_wand=false; game.num_zaps=0; game.egg_timer=0; game.steps=0;
   q=null; held=[]; checkpoint=null;
   rover_timer=0; feed_timer=0; reverse_timer=-1;
-  // 记录 rover 出生位置(撤销重置用)
-  roverInit=[];
-  for(var zi=0;zi<2;zi++) for(var yi=0;yi<WH;yi++) for(var xi=0;xi<WW;xi++){
-    var oi=world.obj[zi][yi][xi];
-    if(oi.type===O.rover) roverInit.push({z:zi,y:yi,x:xi,dir:oi.dir});
-  }
   HISTORY=[]; ckptSnap=null;
   lightCache=[null,null]; lightDirty=true;
   lastSnap=buildSnap();
   onViewChanged(true);
 }
 
-function startAnim(fx,fy,tx,ty){
-  animFromX=fx; animFromY=fy; animToX=tx; animToY=ty;
-  animT0=performance.now(); animOn=true;
+// 记录本次移动起点(仅用于跨世界缝判定)
+function startAnim(fx,fy){
+  animFromX=fx; animFromY=fy; animMove=true;
+}
+// 开门/碎石这类“不位移但要占用一拍”的动作:停顿一拍,但不要做滑入动画
+function pauseInput(){
+  game.player_timer=80; animMove=false;
 }
 
 // ---------- 光照缓存 / 能力判定 / 射击(移植 compute_powered+propagate 应用层) ----------
@@ -242,6 +244,26 @@ var lightDirty=true;
 
 function wrapX(a){ return ((a%WW)+WW)%WW; }
 function wrapY(a){ return ((a%WH)+WH)%WH; }
+
+// 紫光远行滑行:严格照 main.c L753–770
+//   1) 起点必须有紫光(按键方向 proposed 或其反向 proposed^2);
+//   2) 沿按键方向逐格走,只看“该格是否仍在紫光上”,**不判墙/物体**——因为光束本身穿墙(§7-B);
+//   3) 走到第一格不在紫光上时退回一格,即“最后一格仍在紫光上”的格子;
+//   4) 若退回后仍在原地,则原版把 travel 清零(退化为普通移动)。
+// 落点的墙/门/石块判定由 move() 后续 L787–801 统一处理(墙无绿光则整个动作失败,人不动)。
+function glideTarget(z,px,py,pdir,L){
+  if(!L) return null;
+  var x=XD[pdir], y=YD[pdir];
+  function lit(r,c){
+    return L.L[r][c][pdir]===POW_travel || L.L[r][c][pdir^2]===POW_travel;
+  }
+  if(!lit(py,px)) return null;
+  var gx=wrapX(px+x), gy=wrapY(py+y);
+  while(lit(gy,gx)){ gx=wrapX(gx+x); gy=wrapY(gy+y); }
+  gx=wrapX(gx-x); gy=wrapY(gy-y);
+  if(gx===px && gy===py) return null;      // 原版:退化为普通移动
+  return {x:gx,y:gy};
+}
 
 function ensureLight(){
   if(!FEATURE_LIGHT) return;
@@ -312,10 +334,12 @@ function shoot(){
 // 调试开关(顶栏“调试”启用):noclip 穿墙、直接给魔杖
 var noclip=false, debugOn=false;
 var dbgMsg="";   // 最近一次移动的判定诊断(调试行显示)
+function dbgAppend(s){ if(debugOn) dbgMsg += s; }
 function cheatWand(){ game.has_wand=true; game.num_gems=30; }
 function cheatNoclip(){ noclip=!noclip; }
 
 // 目标格分类(能力已内联判定):block=不能走 / door=红光可开 / stone=黄光可碎 / walk=可走(含绿光穿墙)
+// 目标格分类(参数为 **列cx, 行cy**,与 world.tile[z][cy][cx] 一致;能力已内联判定)
 function cellKind(z,cx,cy,abilities){
   var t=world.tile[z][cy][cx], o=world.obj[z][cy][cx];
   if(o.type===O.projector || o.type===O.refl) return "block";
@@ -339,36 +363,45 @@ function tryMove(x,y){
   if(noclip){
     var fx0=game.px, fy0=game.py;
     game.px=wrapX(game.px+x); game.py=wrapY(game.py+y);
-    startAnim(fx0,fy0,game.px,game.py);
     game.pdir=proposed_pdir; game.player_timer=80; game.steps++;
+    startAnim(fx0,fy0);
     onViewChanged(false);
     return "move";
   }
 
+  // 站在墙内:无绿光禁止任何移动(只能撤销),否则绿光穿墙后可能“卡”在墙里还能走出来
+  if(world.tile[z][game.py][game.px]===T.wall){
+    if(!abilities[POW_walls]) return false;
+    setUsed(POW_walls);
+  }
+
   var L=FEATURE_LIGHT ? lightCache[z] : null;
-  function isTravelCell(r,c){               // (行,列),与 L[r][c] 一致
+  function litViolet(r,c){                  // (行,列),与 L[r][c] 一致
     return L && (L.L[r][c][proposed_pdir]===POW_travel ||
                  L.L[r][c][proposed_pdir^2]===POW_travel);
   }
-  // 移动诊断(调试):起点是否紫光 + 前方连续紫光格数
+
+  // ---- 紫光远行:严格照原版 main.c L753–770(途中只看紫光、不判墙) ----
+  var travel=false, gx=game.px, gy=game.py;
+  var tt=glideTarget(z, game.px, game.py, proposed_pdir, L);
+  if(tt){ gx=tt.x; gy=tt.y; setUsed(POW_travel); travel=true; }
+
+  // 移动诊断(调试):起点紫光 / 前方连续紫格(含墙格数)/ 远行落点与判定
   if(debugOn && L){
     var dName= x ? (x>0?"E":"W") : (y>0?"S":"N");
-    var cnt=0, cxa=game.px+x, cya=game.py+y;
-    while(cnt<WW*WH && isTravelCell(cya,cxa)){
+    var cnt=0, walls=0, cxa=game.px+x, cya=game.py+y;
+    while(cnt<WW*WH && litViolet(cya,cxa)){
+      if(world.tile[z][cya][cxa]===T.wall) walls++;
       cnt++; cxa=wrapX(cxa+x); cya=wrapY(cya+y);
     }
-    dbgMsg="["+dName+"] 起点紫:"+(isTravelCell(game.py,game.px)?"是":"否")
-           +" 前方连续紫格:"+cnt+" → "
-           +(cnt>0?"应远行至第 "+cnt+" 格":"起点即终点,退化为普通移动");
-  }
-
-  // ---- 紫光远行(照 C:只判定终点,中途仅受“仍在紫光上”约束) ----
-  var travel=false, gx=game.px, gy=game.py;
-  if(L && isTravelCell(game.py,game.px)){
-    gx=wrapX(game.px+x); gy=wrapY(game.py+y);
-    while(isTravelCell(gy,gx)){ gx=wrapX(gx+x); gy=wrapY(gy+y); }
-    gx=wrapX(gx-x); gy=wrapY(gy-y);
-    if(gx!==game.px || gy!==game.py){ setUsed(POW_travel); travel=true; }
+    var landInfo="无(按原版退化为普通移动)";
+    if(tt){
+      landInfo="("+tt.x+","+tt.y+") 瓦片="+TILE_CN[world.tile[z][tt.y][tt.x]]+
+               " 物体="+OBJ_CN[world.obj[z][tt.y][tt.x].type]+
+               " 判定="+cellKind(z,tt.x,tt.y,abilities);
+    }
+    dbgMsg="["+dName+"] 起点紫:"+(litViolet(game.py,game.px)?"是":"否")
+           +" 前方连续紫格:"+cnt+"(其中墙格 "+walls+") 落点:"+landInfo;
   }
 
   if(!travel){
@@ -385,48 +418,48 @@ function tryMove(x,y){
           if(!abilities[POW_doors]) return false;
           setUsed(POW_doors); game.ability_flag=used;
           world.tile[z][cy][cx]=T.opendoor;
-          game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+          game.pdir=proposed_pdir; lightDirty=true; pauseInput();
           return "open";
         }
         if(oT.type===O.stone){                            // 中途石:可碎则碎并停,不可碎则挡
           if(!abilities[POW_destroy]) return false;
           setUsed(POW_destroy); game.ability_flag=used;
           oT.type=O.empty;
-          game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+          game.pdir=proposed_pdir; lightDirty=true; pauseInput();
           return "destroy";
         }
         continue;                                         // 墙/投影器等中途按原版“过路”放行
       }
-      var kind=cellKind(z,cx,cy,abilities);               // 终点判定(照原版)
-      if(kind==="block") return false;
+      var kind=cellKind(z,cx,cy,abilities);               // 终点判定(照原版;cellKind 参数为 列,行)
+      if(kind==="block"){ dbgAppend(" → 落点被挡(判定=block)"); return false; }
       if(kind==="door"){
         setUsed(POW_doors); game.ability_flag=used;
         world.tile[z][cy][cx]=T.opendoor;
-        game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+        game.pdir=proposed_pdir; lightDirty=true; pauseInput();
         return "open";
       }
       if(kind==="stone"){
         setUsed(POW_destroy); game.ability_flag=used;
         world.obj[z][cy][cx].type=O.empty;
-        game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+        game.pdir=proposed_pdir; lightDirty=true; pauseInput();
         return "destroy";
       }
       if(world.tile[z][cy][cx]===T.wall) setUsed(POW_walls);
       gx=cx; gy=cy;
     }
   } else {
-    var kindT=cellKind(z,gy,gx,abilities);
-    if(kindT==="block") return false;
+    var kindT=cellKind(z,gx,gy,abilities);   // cellKind(列,行):gx=列,gy=行
+    if(kindT==="block"){ dbgAppend(" → 落点被挡(判定=block)"); return false; }
     if(kindT==="door"){
       setUsed(POW_doors); game.ability_flag=used;
       world.tile[z][gy][gx]=T.opendoor;
-      game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+      game.pdir=proposed_pdir; lightDirty=true; pauseInput();
       return "open";
     }
     if(kindT==="stone"){
       setUsed(POW_destroy); game.ability_flag=used;
       world.obj[z][gy][gx].type=O.empty;
-      game.pdir=proposed_pdir; lightDirty=true; game.player_timer=80;
+      game.pdir=proposed_pdir; lightDirty=true; pauseInput();
       return "destroy";
     }
   }
@@ -442,9 +475,9 @@ function tryMove(x,y){
   if(world.tile[z][gy][gx]===T.stairs) nz=(z+1)%2;
 
   game.px=gx; game.py=gy; game.pz=nz;
-  startAnim(fx0,fy0,gx,gy);
   game.pdir=proposed_pdir;
   game.player_timer=80;
+  startAnim(fx0,fy0);
   game.steps++;
   if(nz!==z) lightDirty=true;
   if(got_wand){ ckptSnap=buildSnap(); }        // 魔杖快照(菜单恢复用)
@@ -466,7 +499,6 @@ var HISTORY=[];        // 条目 {diffs:[{k,i,old,new}], pre:{player,t}}
 var lastSnap=null;     // 最近一次提交后的完整状态(用于差分)
 var ckptSnap=null;     // 魔杖快照(菜单“从 wand 恢复”用,M6)
 var DB=null, saveTimer=null;
-var roverInit=[];      // 各层 rover 的出生(格+方向),撤销时用于重置
 
 function pState(){ return {px:game.px,py:game.py,pz:game.pz,pdir:game.pdir,
   flag:game.ability_flag,gems:game.num_gems,fed:game.gems_stored,
@@ -514,7 +546,7 @@ function applyDiffWorld(d,useOld){
 }
 function sameP(a,b){ return a.px===b.px&&a.py===b.py&&a.pz===b.pz&&a.pdir===b.pdir&&
   a.flag===b.flag&&a.gems===b.gems&&a.wand===b.wand&&a.zaps===b.zaps; }
-// 注:fed(rover 吃宝石)/egg 不计入历史,撤销不回滚(rover 状态不记录)
+// 注:fed(rover 吃宝石)/egg 不计入历史,撤销不回滚;rover 状态完全独立于撤销
 function sameT(a,b){ return false; }   // rover 计时器永不触发“有变化”入栈
 function commitHistory(){
   if(!lastSnap) return;
@@ -526,18 +558,7 @@ function commitHistory(){
   lastSnap=cur;
   scheduleSave();
 }
-// Z 键撤销:弹栈回滚“玩家可影响”的改动;rover 重置到出生格(不记录/不回放)
-function resetRoversToInit(){
-  if(!world) return;
-  var z,y,x;
-  for(z=0;z<2;z++) for(y=0;y<WH;y++) for(x=0;x<WW;x++)
-    if(world.obj[z][y][x].type===O.rover) world.obj[z][y][x].type=O.empty;
-  for(var i=0;i<roverInit.length;i++){
-    var r=roverInit[i], o=world.obj[r.z][r.y][r.x];
-    o.type=O.rover; o.dir=r.dir; o.color=0;
-  }
-  feed_timer=0; reverse_timer=-1; rover_timer=0;   // rover 计时器复位
-}
+// Z 键撤销:回滚“玩家可影响”的改动;rover 完全独立(不入历史、不重置、持续自主移动)
 function undo(){
   if(!HISTORY.length) return;
   var e=HISTORY.pop();
@@ -545,8 +566,7 @@ function undo(){
   for(var i=0;i<e.diffs.length;i++) applyDiffWorld(e.diffs[i],true);
   applyP(e.pre.player);
   game.gems_stored=keepFed; game.egg_timer=keepEgg;   // rover 计数不回滚
-  resetRoversToInit();
-  game.player_timer=0; animOn=false;
+  game.player_timer=0; animMove=false;
   lightDirty=true;
   lastSnap=buildSnap();
   scheduleSave();
@@ -826,15 +846,19 @@ function render(){
     ctx.stroke();
   }
 
-  // 玩家(80ms 单向插值;跨世界缝直接瞬移)
+  // 玩家:照原版 draw_world L2004–2009,只做“最后一格”的滑入
+  //   epx = -16*xdir[pdir]*(player_timer/80) → 画在“目标格往回一格”处,随时钟滑入目标格。
+  //   这样双步/远行跨多格时不会拉一条长线滑过墙体(原版同样只滑最后一格)。
   var drawX=game.px, drawY=game.py;
-  if(animOn){
-    var fr=Math.min(1,(performance.now()-animT0)/80);
-    if(fr>=1){ animOn=false; }
-    else if(!seamCross(animFromX,animToX,WW) && !seamCross(animFromY,animToY,WH)){
-      drawX=animFromX+(animToX-animFromX)*fr;
-      drawY=animFromY+(animToY-animFromY)*fr;
-    } else { animOn=false; }                 // 跨界:瞬移不插值
+  if(animMove && game.player_timer>0){
+    var bigJump=(Math.abs(animFromX-game.px)>1 || Math.abs(animFromY-game.py)>1);
+    var behindIsFrom=(wrapX(game.px-XD[game.pdir])===animFromX &&
+                      wrapY(game.py-YD[game.pdir])===animFromY);
+    if(!(bigJump && behindIsFrom)){          // 跨世界缝:瞬移,不做滑入
+      var slide=game.player_timer/80;        // 80→0,偏移 1 格 → 0 格
+      drawX=game.px - XD[game.pdir]*slide;
+      drawY=game.py - YD[game.pdir]*slide;
+    }
   }
   var dxs=game.pdir;
   ctx.globalAlpha=0.9;
@@ -845,7 +869,6 @@ function render(){
   ctx.strokeRect(drawX*K+1, drawY*K+1, K-2, K-2);
   refreshHud();
 }
-function seamCross(a,b,n){ return Math.abs(a-b)>1; }
 
 // ---------- HUD ----------
 var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:"",gems:"",undo:""};
@@ -962,6 +985,13 @@ function loop(now){
 
 // ---------- 错误与启动 ----------
 function err(msg){ var e=byId("err"); e.style.display="block"; e.textContent=msg; }
+// 全局异常直接显示在页面上(此前静默失败很难排查)
+window.addEventListener("error",function(e){
+  err("运行错误: "+(e.message||e.error||"?")+"  @ "+(e.filename||"")+":"+(e.lineno||0));
+});
+window.addEventListener("unhandledrejection",function(e){
+  var r=e.reason; err("异步错误: "+((r&&(r.message||r))||"?"));
+});
 (function boot(){
   try{
     if(!RAW||RAW.length!==24){ err("map-data.js 异常:期望 24 行,实际 "+(RAW?RAW.length:"未定义")+"。"); return; }
