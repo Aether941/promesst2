@@ -1368,8 +1368,10 @@ byId("dbgNoclip").addEventListener("click",function(){
 });
 window.addEventListener("resize",function(){ if(autoFit) resizeCanvas(); });
 
-// ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑) ----------
+// ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑;渲染限 30FPS) ----------
 let last=performance.now(), acc=0;
+let lastRender=0;
+const RENDER_INTERVAL=1000/30;
 function loop(now){
   const dt=Math.min(now-last,250); last=now;
   animcycle+=dt;
@@ -1383,8 +1385,11 @@ function loop(now){
   } else {
     acc=0;                      // 菜单/结算:暂停模拟(与原版 process_metagame 一致)
   }
-  render();
-  if(mainMode==="game" && follow) centerPlayer();
+  if(now-lastRender>=RENDER_INTERVAL){
+    lastRender=now;
+    render();
+    if(mainMode==="game" && follow) centerPlayer();
+  }
   requestAnimationFrame(loop);
 }
 
