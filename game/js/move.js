@@ -291,3 +291,7 @@ function snapshotState() {
     egg_timer: game.egg_timer,
   };
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.tryMove = tryMove;
+globalThis.snapshotState = snapshotState;

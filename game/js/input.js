@@ -184,3 +184,6 @@ byId("dbgNoclip").addEventListener("click", function () {
 window.addEventListener("resize", function () {
   if (autoFit) resizeCanvas();
 });
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.KEYMAP = KEYMAP;

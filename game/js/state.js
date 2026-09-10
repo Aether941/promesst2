@@ -117,3 +117,69 @@ function pauseInput() {
   game.player_timer = 80;
   animMove = false;
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.copyWorld = copyWorld;
+globalThis.reset = reset;
+globalThis.startAnim = startAnim;
+globalThis.pauseInput = pauseInput;
+globalThis.game = game;
+globalThis.MAX_GEMS = MAX_GEMS;
+globalThis.ROVER_MS = ROVER_MS;
+globalThis.FEED_MS = FEED_MS;
+globalThis.REVERSE_MS = REVERSE_MS;
+Object.defineProperty(globalThis, "world", {
+  configurable: true,
+  get() { return world; },
+  set(value) { world = value; },
+});
+Object.defineProperty(globalThis, "animFromX", {
+  configurable: true,
+  get() { return animFromX; },
+  set(value) { animFromX = value; },
+});
+Object.defineProperty(globalThis, "animFromY", {
+  configurable: true,
+  get() { return animFromY; },
+  set(value) { animFromY = value; },
+});
+Object.defineProperty(globalThis, "animMove", {
+  configurable: true,
+  get() { return animMove; },
+  set(value) { animMove = value; },
+});
+Object.defineProperty(globalThis, "animcycle", {
+  configurable: true,
+  get() { return animcycle; },
+  set(value) { animcycle = value; },
+});
+Object.defineProperty(globalThis, "q", {
+  configurable: true,
+  get() { return q; },
+  set(value) { q = value; },
+});
+Object.defineProperty(globalThis, "held", {
+  configurable: true,
+  get() { return held; },
+  set(value) { held = value; },
+});
+Object.defineProperty(globalThis, "checkpoint", {
+  configurable: true,
+  get() { return checkpoint; },
+  set(value) { checkpoint = value; },
+});
+Object.defineProperty(globalThis, "rover_timer", {
+  configurable: true,
+  get() { return rover_timer; },
+  set(value) { rover_timer = value; },
+});
+Object.defineProperty(globalThis, "feed_timer", {
+  configurable: true,
+  get() { return feed_timer; },
+  set(value) { feed_timer = value; },
+});
+Object.defineProperty(globalThis, "reverse_timer", {
+  configurable: true,
+  get() { return reverse_timer; },
+  set(value) { reverse_timer = value; },
+});

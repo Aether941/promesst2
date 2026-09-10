@@ -240,3 +240,24 @@ function shoot() {
   }
   return false;
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.computePowered = computePowered;
+globalThis.propagate = propagate;
+globalThis.wrapX = wrapX;
+globalThis.wrapY = wrapY;
+globalThis.glideTarget = glideTarget;
+globalThis.ensureLight = ensureLight;
+globalThis.getAbilities = getAbilities;
+globalThis.findLightsOnPlayer = findLightsOnPlayer;
+globalThis.shoot = shoot;
+Object.defineProperty(globalThis, "lightCache", {
+  configurable: true,
+  get() { return lightCache; },
+  set(value) { lightCache = value; },
+});
+Object.defineProperty(globalThis, "lightDirty", {
+  configurable: true,
+  get() { return lightDirty; },
+  set(value) { lightDirty = value; },
+});

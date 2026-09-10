@@ -99,3 +99,37 @@ function bmpTextWidth(size, text, spacing) {
   }
   return x;
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.sample = sample;
+globalThis.computePowers = computePowers;
+globalThis.cellFrom = cellFrom;
+globalThis.drawBmpText = drawBmpText;
+globalThis.bmpTextWidth = bmpTextWidth;
+globalThis.RAW = RAW;
+globalThis.tileCache = tileCache;
+Object.defineProperty(globalThis, "ATLAS", {
+  configurable: true,
+  get() { return ATLAS; },
+  set(value) { ATLAS = value; },
+});
+Object.defineProperty(globalThis, "CELL", {
+  configurable: true,
+  get() { return CELL; },
+  set(value) { CELL = value; },
+});
+Object.defineProperty(globalThis, "img", {
+  configurable: true,
+  get() { return img; },
+  set(value) { img = value; },
+});
+Object.defineProperty(globalThis, "imgData", {
+  configurable: true,
+  get() { return imgData; },
+  set(value) { imgData = value; },
+});
+Object.defineProperty(globalThis, "powers", {
+  configurable: true,
+  get() { return powers; },
+  set(value) { powers = value; },
+});

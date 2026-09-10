@@ -150,3 +150,6 @@ function parseWorld() {
   }
   return {tile: tile, obj: obj, player: player, egg: egg};
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.parseWorld = parseWorld;

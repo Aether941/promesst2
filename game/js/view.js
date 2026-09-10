@@ -55,3 +55,14 @@ function centerPlayer() {
 function onViewChanged(center) {
   if (center) resizeCanvas();
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.resizeCanvas = resizeCanvas;
+globalThis.centerPlayer = centerPlayer;
+globalThis.onViewChanged = onViewChanged;
+globalThis.stage = stage;
+Object.defineProperty(globalThis, "cssScale", {
+  configurable: true,
+  get() { return cssScale; },
+  set(value) { cssScale = value; },
+});

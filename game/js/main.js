@@ -3,6 +3,23 @@
    主循环、错误处理与启动入口
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
+/* ---------- ES Module 入口依赖:按原全局脚本依赖顺序加载 ---------- */
+import "../map-data.js";
+import "./constants.js";
+import "./assets.js";
+import "./world.js";
+import "./state.js";
+import "./light.js";
+import "./debug.js";
+import "./move.js";
+import "./history.js";
+import "./rover.js";
+import "./render.js";
+import "./hud.js";
+import "./menu.js";
+import "./saves.js";
+import "./view.js";
+import "./input.js";
 // ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑;渲染可选 30/60/90/120FPS,默认60) ----------
 const FPS_OPTIONS = [30, 60, 90, 120];
 // 当前帧率对应的渲染间隔(ms)。
@@ -81,6 +98,32 @@ window.addEventListener("unhandledrejection", function (e) {
   const r = e.reason;
   err("异步错误: " + ((r && (r.message || r)) || "?"));
 });
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.loop = loop;
+globalThis.err = err;
+globalThis.FPS_OPTIONS = FPS_OPTIONS;
+globalThis.selFps = selFps;
+Object.defineProperty(globalThis, "renderInterval", {
+  configurable: true,
+  get() { return renderInterval; },
+  set(value) { renderInterval = value; },
+});
+Object.defineProperty(globalThis, "last", {
+  configurable: true,
+  get() { return last; },
+  set(value) { last = value; },
+});
+Object.defineProperty(globalThis, "acc", {
+  configurable: true,
+  get() { return acc; },
+  set(value) { acc = value; },
+});
+Object.defineProperty(globalThis, "lastRender", {
+  configurable: true,
+  get() { return lastRender; },
+  set(value) { lastRender = value; },
+});
+
 (function boot() {
   try {
     if (!RAW || RAW.length !== 24) {

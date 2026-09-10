@@ -169,3 +169,35 @@ function cellKind(z, cx, cy, abilities) {
   if (o.type === O.stone) return abilities[POW_destroy] ? "stone" : "block";
   return "walk";
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.dbgReset = dbgReset;
+globalThis.dbgTileName = dbgTileName;
+globalThis.dbgCellDesc = dbgCellDesc;
+globalThis.dbgBlockReason = dbgBlockReason;
+globalThis.dbgStart = dbgStart;
+globalThis.dbgAdd = dbgAdd;
+globalThis.dbgFinish = dbgFinish;
+globalThis.cheatWand = cheatWand;
+globalThis.cheatNoclip = cheatNoclip;
+globalThis.cellKind = cellKind;
+Object.defineProperty(globalThis, "noclip", {
+  configurable: true,
+  get() { return noclip; },
+  set(value) { noclip = value; },
+});
+Object.defineProperty(globalThis, "debugOn", {
+  configurable: true,
+  get() { return debugOn; },
+  set(value) { debugOn = value; },
+});
+Object.defineProperty(globalThis, "dbgMsg", {
+  configurable: true,
+  get() { return dbgMsg; },
+  set(value) { dbgMsg = value; },
+});
+Object.defineProperty(globalThis, "dbgLog", {
+  configurable: true,
+  get() { return dbgLog; },
+  set(value) { dbgLog = value; },
+});

@@ -321,3 +321,31 @@ function render() {
   drawEndingOverlay(ctx, k);
   refreshHud();
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.drawEndingOverlay = drawEndingOverlay;
+globalThis.kPx = kPx;
+globalThis.render = render;
+globalThis.cv = cv;
+globalThis.ctx = ctx;
+globalThis.canvasSize = canvasSize;
+Object.defineProperty(globalThis, "zoomK", {
+  configurable: true,
+  get() { return zoomK; },
+  set(value) { zoomK = value; },
+});
+Object.defineProperty(globalThis, "autoFit", {
+  configurable: true,
+  get() { return autoFit; },
+  set(value) { autoFit = value; },
+});
+Object.defineProperty(globalThis, "follow", {
+  configurable: true,
+  get() { return follow; },
+  set(value) { follow = value; },
+});
+Object.defineProperty(globalThis, "showGrid", {
+  configurable: true,
+  get() { return showGrid; },
+  set(value) { showGrid = value; },
+});

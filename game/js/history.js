@@ -401,3 +401,53 @@ function drop() {
   lightDirty = true; // 供电/光束随之变化
   return true;
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.pState = pState;
+globalThis.tState = tState;
+globalThis.applyP = applyP;
+globalThis.applyT = applyT;
+globalThis.buildSnap = buildSnap;
+globalThis.cellIdx = cellIdx;
+globalThis.diffSnap = diffSnap;
+globalThis.idxToC = idxToC;
+globalThis.applyDiffWorld = applyDiffWorld;
+globalThis.sameP = sameP;
+globalThis.sameT = sameT;
+globalThis.commitHistory = commitHistory;
+globalThis.undo = undo;
+globalThis.openDB = openDB;
+globalThis.idbGet = idbGet;
+globalThis.idbPut = idbPut;
+globalThis.packSave = packSave;
+globalThis.saveToDB = saveToDB;
+globalThis.scheduleSave = scheduleSave;
+globalThis.loadFromDB = loadFromDB;
+globalThis.applySnap = applySnap;
+globalThis.restoreSave = restoreSave;
+globalThis.drop = drop;
+Object.defineProperty(globalThis, "HISTORY", {
+  configurable: true,
+  get() { return HISTORY; },
+  set(value) { HISTORY = value; },
+});
+Object.defineProperty(globalThis, "lastSnap", {
+  configurable: true,
+  get() { return lastSnap; },
+  set(value) { lastSnap = value; },
+});
+Object.defineProperty(globalThis, "ckptSnap", {
+  configurable: true,
+  get() { return ckptSnap; },
+  set(value) { ckptSnap = value; },
+});
+Object.defineProperty(globalThis, "DB", {
+  configurable: true,
+  get() { return DB; },
+  set(value) { DB = value; },
+});
+Object.defineProperty(globalThis, "saveTimer", {
+  configurable: true,
+  get() { return saveTimer; },
+  set(value) { saveTimer = value; },
+});

@@ -176,3 +176,9 @@ function update(ms) {
     game.egg_timer += ms;
   }
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.roverCanEnter = roverCanEnter;
+globalThis.roverDir = roverDir;
+globalThis.stepRovers = stepRovers;
+globalThis.update = update;

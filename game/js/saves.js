@@ -192,3 +192,17 @@ function importSave(file) {
   };
   fr.readAsText(file);
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.slotKey = slotKey;
+globalThis.loadActiveSlot = loadActiveSlot;
+globalThis.setActiveSlot = setActiveSlot;
+globalThis.fmtTime = fmtTime;
+globalThis.renderSlots = renderSlots;
+globalThis.exportSave = exportSave;
+globalThis.importSave = importSave;
+Object.defineProperty(globalThis, "activeSlot", {
+  configurable: true,
+  get() { return activeSlot; },
+  set(value) { activeSlot = value; },
+});

@@ -114,3 +114,8 @@ function refreshHud() {
 function byId(id) {
   return document.getElementById(id);
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.refreshHud = refreshHud;
+globalThis.byId = byId;
+globalThis.hud = hud;

@@ -156,3 +156,39 @@ function enterResult() {
   byId("resFed").textContent = "已喂宝石 " + game.gems_stored + "/" + MAX_GEMS;
   setMode("result");
 }
+
+/* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
+globalThis.menuEnabled = menuEnabled;
+globalThis.buildMenu = buildMenu;
+globalThis.refreshMenu = refreshMenu;
+globalThis.moveMenuSel = moveMenuSel;
+globalThis.showScreen = showScreen;
+globalThis.setMode = setMode;
+globalThis.activateMenu = activateMenu;
+globalThis.enterResult = enterResult;
+globalThis.MENU = MENU;
+Object.defineProperty(globalThis, "mainMode", {
+  configurable: true,
+  get() { return mainMode; },
+  set(value) { mainMode = value; },
+});
+Object.defineProperty(globalThis, "logoTime", {
+  configurable: true,
+  get() { return logoTime; },
+  set(value) { logoTime = value; },
+});
+Object.defineProperty(globalThis, "gameStarted", {
+  configurable: true,
+  get() { return gameStarted; },
+  set(value) { gameStarted = value; },
+});
+Object.defineProperty(globalThis, "menuSel", {
+  configurable: true,
+  get() { return menuSel; },
+  set(value) { menuSel = value; },
+});
+Object.defineProperty(globalThis, "clearedFlag", {
+  configurable: true,
+  get() { return clearedFlag; },
+  set(value) { clearedFlag = value; },
+});
