@@ -56,6 +56,9 @@
   #info{color:var(--dim); font-size:12px; line-height:1.8}
   #err{display:none; background:#2a0f14; color:#ffb4bc; border:1px solid #ff6b7a;
        border-radius:8px; padding:8px 10px; font:11.5px/1.5 Consolas,monospace; white-space:pre-wrap}
+  #dbgMove{margin:0; max-height:260px; overflow:auto; background:#0d1220; border:1px solid var(--line);
+           border-radius:6px; padding:6px 7px; font:11px/1.5 Consolas,monospace; color:#cfe3ff;
+           white-space:pre-wrap; word-break:break-word}
 
   /* ================= 覆盖层:Logo / 菜单 / Credits / 存档 / 结算 ================= */
   .screen{position:fixed; inset:0; display:none; align-items:center; justify-content:center;
@@ -160,8 +163,12 @@
         <span class="badge" id="dbgNoclipState">穿墙:关</span>
         <span class="badge" id="dbgLights">入射光:—</span>
       </div>
-      <div class="rows" style="margin-top:6px">
-        <span class="badge" id="dbgMove" style="white-space:normal">移动判定:—</span>
+      <div style="margin-top:6px">
+        <pre id="dbgMove">移动判定:—</pre>
+        <div class="rows" style="margin-top:5px">
+          <button class="btn" id="dbgCopy">复制调试信息</button>
+          <span class="badge" id="dbgCopyState">最近 3 次</span>
+        </div>
       </div>
     </section>
 

@@ -249,6 +249,7 @@ function reset(){
   q=null; held=[]; checkpoint=null;
   rover_timer=0; feed_timer=0; reverse_timer=-1;
   HISTORY=[]; ckptSnap=null;
+  if(typeof dbgReset==="function") dbgReset();   // 清空调试报告
   lightCache=[null,null]; lightDirty=true;
   lastSnap=buildSnap();
   onViewChanged(true);
@@ -356,14 +357,61 @@ function shoot(){
   return false;
 }
 
-// 调试开关(顶栏“调试”启用):noclip 穿墙、直接给魔杖
+// ---------- 调试:移动判定报告(覆盖全部颜色,最近 3 次) ----------
 var noclip=false, debugOn=false;
-var dbgMsg="";   // 最近一次移动的判定诊断(调试行显示)
-function dbgAppend(s){ if(debugOn) dbgMsg += s; }
+var dbgMsg="移动判定:—";     // 面板显示文本
+var dbgLog=[];               // 最近 3 次报告
+function dbgReset(){ dbgLog=[]; dbgMsg="移动判定:—"; }
+function dbgTileName(z,cx,cy){ return TILE_CN[world.tile[z][cy][cx]]; }
+function dbgCellDesc(z,cx,cy){
+  var o=world.obj[z][cy][cx], extra="";
+  if(o.type===O.projector) extra="(色="+CNAMES[o.color]+" 向="+DIRNAME[o.dir]+")";
+  else if(o.type===O.refl) extra="(姿态="+(o.dir?"\\\\":"/")+")";
+  return "("+cx+","+cy+") 瓦片="+dbgTileName(z,cx,cy)+" 物体="+OBJ_CN[o.type]+extra;
+}
+function dbgBlockReason(z,cx,cy,ab){
+  var t=world.tile[z][cy][cx], o=world.obj[z][cy][cx];
+  if(o.type===O.projector) return "投影器不可站(原版 L794)";
+  if(o.type===O.refl)      return "反射镜不可站(原版 L819)";
+  if(t===T.wall)  return "墙需要绿光(穿墙)";
+  if(t===T.door)  return "门需要红光(开门)";
+  if(o.type===O.stone) return "石块需要黄光(碎石)";
+  return "未知";
+}
+function dbgStart(x,y,z){
+  if(!debugOn) return null;
+  var dirName = x ? (x>0?"→E 右":"←W 左") : (y>0?"↓S 下":"↑N 上");
+  var ab=[0,0,0,0,0,0,0,0];
+  getAbilities(ab);
+  var L=FEATURE_LIGHT?lightCache[z]:null, lightStr="(无光照数据)";
+  if(L){
+    var p=[];
+    for(var i=0;i<4;i++){
+      var v=L.L[game.py][game.px][i];
+      p.push(["E","N","W","S"][i]+"="+(v>=0?CNAMES[v]:"—"));
+    }
+    lightStr=p.join(" ");
+  }
+  return { lines:[
+    "── 按键 "+dirName+" | 从 ("+game.px+","+game.py+") Z"+z+" 朝向="+DIRNAME[game.pdir],
+    "入射光(玩家格四向) "+lightStr,
+    "能力计数 红(开门)"+ab[0]+" 绿(穿墙)"+ab[1]+" 黄(碎石)"+ab[4]+
+      " 橙(双步)"+ab[3]+" 紫(远行)"+ab[5]+" flag=0x"+game.ability_flag.toString(16)
+  ]};
+}
+function dbgAdd(D,s){ if(D) D.lines.push(s); }
+function dbgFinish(D,desc){
+  if(!D) return;
+  D.lines.push("结果: "+desc);
+  var text=D.lines.join("\n");
+  dbgLog.unshift(text);
+  if(dbgLog.length>3) dbgLog.length=3;
+  dbgMsg=dbgLog.join("\n· · · · ·\n");
+  try{ if(window.console) console.log("[PROMESST2 移动判定]\n"+text); }catch(e){}
+}
 function cheatWand(){ game.has_wand=true; game.num_gems=30; }
 function cheatNoclip(){ noclip=!noclip; }
 
-// 目标格分类(能力已内联判定):block=不能走 / door=红光可开 / stone=黄光可碎 / walk=可走(含绿光穿墙)
 // 目标格分类(参数为 **列cx, 行cy**,与 world.tile[z][cy][cx] 一致;能力已内联判定)
 function cellKind(z,cx,cy,abilities){
   var t=world.tile[z][cy][cx], o=world.obj[z][cy][cx];
@@ -384,6 +432,9 @@ function tryMove(x,y){
   var used=game.ability_flag;
   function setUsed(b){ used |= (1<<b); }
 
+  var D=dbgStart(x,y,z);                     // 调试报告(未开调试时为 null)
+  function ret(res,desc){ dbgFinish(D,desc); return res; }
+
   // 调试穿墙:无视一切直接走一格
   if(noclip){
     var fx0=game.px, fy0=game.py;
@@ -391,102 +442,110 @@ function tryMove(x,y){
     game.pdir=proposed_pdir; game.player_timer=80; game.steps++;
     startAnim(fx0,fy0);
     onViewChanged(false);
-    return "move";
+    return ret("move","调试穿墙:直接移动到 ("+game.px+","+game.py+")");
   }
+
+  dbgAdd(D,"当前格 "+dbgCellDesc(z,game.px,game.py));
 
   // 站在墙内:无绿光禁止任何移动(只能撤销),否则绿光穿墙后可能“卡”在墙里还能走出来
   if(world.tile[z][game.py][game.px]===T.wall){
-    if(!abilities[POW_walls]) return false;
+    if(!abilities[POW_walls])
+      return ret(false,"被挡:站在墙内且无绿光(原版 L787–792,只能撤销)");
     setUsed(POW_walls);
+    dbgAdd(D,"站在墙内:有绿光 → 允许移动(消耗绿光)");
   }
 
   var L=FEATURE_LIGHT ? lightCache[z] : null;
-  function litViolet(r,c){                  // (行,列),与 L[r][c] 一致
-    return L && (L.L[r][c][proposed_pdir]===POW_travel ||
-                 L.L[r][c][proposed_pdir^2]===POW_travel);
+  function litViolet(r,c){                  // (行,列),与 L[r][c] 一致;带边界防护
+    return !!(L && L.L[r] && L.L[r][c] &&
+      (L.L[r][c][proposed_pdir]===POW_travel || L.L[r][c][proposed_pdir^2]===POW_travel));
   }
 
   // ---- 紫光远行:严格照原版 main.c L753–770(途中只看紫光、不判墙) ----
   var travel=false, gx=game.px, gy=game.py;
   var tt=glideTarget(z, game.px, game.py, proposed_pdir, L);
   if(tt){ gx=tt.x; gy=tt.y; setUsed(POW_travel); travel=true; }
-
-  // 移动诊断(调试):起点紫光 / 前方连续紫格(含墙格数)/ 远行落点与判定
-  if(debugOn && L){
-    var dName= x ? (x>0?"E":"W") : (y>0?"S":"N");
-    var cnt=0, walls=0, cxa=game.px+x, cya=game.py+y;
+  if(D && L){
+    var startV=litViolet(game.py,game.px);
+    var cnt=0, walls=0, cxa=wrapX(game.px+x), cya=wrapY(game.py+y);   // 必须环绕(否则边缘会越界)
     while(cnt<WW*WH && litViolet(cya,cxa)){
       if(world.tile[z][cya][cxa]===T.wall) walls++;
       cnt++; cxa=wrapX(cxa+x); cya=wrapY(cya+y);
     }
-    var landInfo="无(按原版退化为普通移动)";
-    if(tt){
-      landInfo="("+tt.x+","+tt.y+") 瓦片="+TILE_CN[world.tile[z][tt.y][tt.x]]+
-               " 物体="+OBJ_CN[world.obj[z][tt.y][tt.x].type]+
-               " 判定="+cellKind(z,tt.x,tt.y,abilities);
-    }
-    dbgMsg="["+dName+"] 起点紫:"+(litViolet(game.py,game.px)?"是":"否")
-           +" 前方连续紫格:"+cnt+"(其中墙格 "+walls+") 落点:"+landInfo;
+    dbgAdd(D,"远行判定(紫) 起点紫="+(startV?"是":"否")+" 前方连续紫="+cnt+"(墙格"+walls+") 落点="+
+      (tt?("("+tt.x+","+tt.y+")"):"无(按原版退化为普通移动)"));
   }
 
+  var stepN=1;
   if(!travel){
     // 橙光双步:终点按原版判定;但路径中途若遇门(红光)/石块(黄光)则停下开门/砸碎
-    var n=1;
-    if(abilities[POW_double]){ n=1<<abilities[POW_double]; setUsed(POW_double); }
+    if(abilities[POW_double]){ stepN=1<<abilities[POW_double]; setUsed(POW_double); }
+    dbgAdd(D,"双步判定(橙) 橙光×"+abilities[POW_double]+" → 本次步长 "+stepN);
     var k;
-    for(k=1;k<=n;k++){
+    for(k=1;k<=stepN;k++){
       var cx=wrapX(game.px+x*k), cy=wrapY(game.py+y*k);
-      var isMid=(k<n);
+      var isMid=(k<stepN);
       var tT=world.tile[z][cy][cx], oT=world.obj[z][cy][cx];
       if(isMid){
         if(tT===T.door){                                  // 中途门:可开则开并停,不可开则挡
-          if(!abilities[POW_doors]) return false;
+          if(!abilities[POW_doors])
+            return ret(false,"被挡:双步中途 "+dbgCellDesc(z,cx,cy)+" 是门,缺红光");
           setUsed(POW_doors); game.ability_flag=used;
           world.tile[z][cy][cx]=T.opendoor;
           game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-          return "open";
+          return ret("open","开门(双步中途) "+dbgCellDesc(z,cx,cy)+" → open_door,人不动");
         }
         if(oT.type===O.stone){                            // 中途石:可碎则碎并停,不可碎则挡
-          if(!abilities[POW_destroy]) return false;
+          if(!abilities[POW_destroy])
+            return ret(false,"被挡:双步中途 "+dbgCellDesc(z,cx,cy)+" 是石块,缺黄光");
           setUsed(POW_destroy); game.ability_flag=used;
           oT.type=O.empty;
           game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-          return "destroy";
+          return ret("destroy","碎石(双步中途) "+dbgCellDesc(z,cx,cy)+" → 清空,人不动");
         }
+        dbgAdd(D,"双步第"+k+"格(中途) "+dbgCellDesc(z,cx,cy)+" → 按原版放行(不判定)");
         continue;                                         // 墙/投影器等中途按原版“过路”放行
       }
       var kind=cellKind(z,cx,cy,abilities);               // 终点判定(照原版;cellKind 参数为 列,行)
-      if(kind==="block"){ dbgAppend(" → 落点被挡(判定=block)"); return false; }
+      if(kind==="block")
+        return ret(false,"被挡:落点 "+dbgCellDesc(z,cx,cy)+" → "+dbgBlockReason(z,cx,cy,abilities));
       if(kind==="door"){
         setUsed(POW_doors); game.ability_flag=used;
         world.tile[z][cy][cx]=T.opendoor;
         game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-        return "open";
+        return ret("open","开门(落点) "+dbgCellDesc(z,cx,cy)+" → open_door,人不动");
       }
       if(kind==="stone"){
         setUsed(POW_destroy); game.ability_flag=used;
         world.obj[z][cy][cx].type=O.empty;
         game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-        return "destroy";
+        return ret("destroy","碎石(落点) "+dbgCellDesc(z,cx,cy)+" → 清空,人不动");
       }
-      if(world.tile[z][cy][cx]===T.wall) setUsed(POW_walls);
+      if(world.tile[z][cy][cx]===T.wall){
+        setUsed(POW_walls);
+        dbgAdd(D,"落点 "+dbgCellDesc(z,cx,cy)+" → 墙,用绿光穿墙(消耗绿光)");
+      } else {
+        dbgAdd(D,"落点 "+dbgCellDesc(z,cx,cy)+" → 判定="+kind);
+      }
       gx=cx; gy=cy;
     }
   } else {
     var kindT=cellKind(z,gx,gy,abilities);   // cellKind(列,行):gx=列,gy=行
-    if(kindT==="block"){ dbgAppend(" → 落点被挡(判定=block)"); return false; }
+    if(kindT==="block")
+      return ret(false,"被挡:远行落点 "+dbgCellDesc(z,gx,gy)+" → "+dbgBlockReason(z,gx,gy,abilities));
     if(kindT==="door"){
       setUsed(POW_doors); game.ability_flag=used;
       world.tile[z][gy][gx]=T.opendoor;
       game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-      return "open";
+      return ret("open","开门(远行落点) "+dbgCellDesc(z,gx,gy)+" → open_door,人不动");
     }
     if(kindT==="stone"){
       setUsed(POW_destroy); game.ability_flag=used;
       world.obj[z][gy][gx].type=O.empty;
       game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-      return "destroy";
+      return ret("destroy","碎石(远行落点) "+dbgCellDesc(z,gx,gy)+" → 清空,人不动");
     }
+    dbgAdd(D,"远行落点 "+dbgCellDesc(z,gx,gy)+" → 判定="+kindT);
   }
 
   // ---- 落地(共用) ----
@@ -507,7 +566,9 @@ function tryMove(x,y){
   if(nz!==z) lightDirty=true;
   if(got_wand){ ckptSnap=buildSnap(); }        // 魔杖快照(菜单恢复用)
   onViewChanged(false);
-  return "move";
+  return ret("move","移动 → ("+game.px+","+game.py+") Z"+game.pz+
+    (travel?" [紫光远行]":(stepN>1?" [橙光双步×"+stepN+"]":""))+
+    (nz!==z?" [楼梯切层]":"")+(got_wand?" [拾取魔杖]":""));
 }
 
 function snapshotState(){
@@ -979,7 +1040,7 @@ function render(){
 }
 
 // ---------- HUD ----------
-var hud={z:"",xy:"",room:"",face:"",steps:"",carry:"",wand:"",gems:"",undo:""};
+var hud={z:"",xy:"",room:"",face:"",steps:"",carry:"",wand:"",gems:"",undo:"",move:""};
 function refreshHud(){
   var z=game.pz, x=game.px, y=game.py;
   var rx=(x/SX)|0, ry=(y/SY)|0;
@@ -1020,7 +1081,7 @@ function refreshHud(){
         parts.push(["E","N","W","S"][d]+"="+(v>=0?CNAMES[v]:"—"));
       }
       byId("dbgLights").textContent="入射光:"+parts.join(" ");
-      byId("dbgMove").textContent=dbgMsg||"—";
+      if(hud.move!==dbgMsg){ hud.move=dbgMsg; byId("dbgMove").textContent=dbgMsg; }
     }
   }
 }
@@ -1291,6 +1352,23 @@ byId("ckDbg").addEventListener("change",function(e){
 });
 byId("dbgWand").addEventListener("click",function(){ cheatWand(); });
 byId("dbgFeed").addEventListener("click",function(){ game.gems_stored=MAX_GEMS; });   // 调试:直接触发结局
+byId("dbgCopy").addEventListener("click",function(){
+  var t=dbgMsg||"(无调试信息)";
+  function done(ok){
+    var st=byId("dbgCopyState"); if(!st) return;
+    st.textContent=ok?"已复制到剪贴板":"请手动选择复制";
+    setTimeout(function(){ st.textContent="最近 3 次"; },2000);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ done(true); },function(){ done(false); });
+  } else {
+    try{
+      var ta=document.createElement("textarea");
+      ta.value=t; document.body.appendChild(ta); ta.select();
+      var ok=document.execCommand("copy"); document.body.removeChild(ta); done(ok);
+    }catch(e){ done(false); }
+  }
+});
 byId("dbgNoclip").addEventListener("click",function(){
   cheatNoclip();
   byId("dbgNoclipState").textContent="穿墙:"+(noclip?"开":"关");
