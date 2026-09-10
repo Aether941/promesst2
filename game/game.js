@@ -1200,22 +1200,32 @@ function importSave(file){
   fr.readAsText(file);
 }
 
-// ---------- 视野:适配/缩放/跟随 ----------
+// ---------- 视野:适配(吃满可视区)/ 手动缩放 / 跟随 ----------
 var stage=byId("stage");
-function fitZoom(){
-  var w=stage.clientWidth-24, h=stage.clientHeight-24;
-  var k=Math.floor(Math.min(w,h)/canvasSize);
-  return Math.max(1, Math.min(4, k||1));
-}
+var cssScale=1;        // 画布 CSS 显示尺寸 / 后备缓冲尺寸(适配模式下可能 <1,避免模糊)
 function resizeCanvas(){
-  if(autoFit) zoomK=fitZoom();
-  cv.width=canvasSize*zoomK; cv.height=canvasSize*zoomK;
+  if(autoFit){
+    // 用 min(可视宽, 可视高) 的正方形尽量占满;后备缓冲取“接近显示倍率”的整数倍再交给 CSS 缩放
+    var availW=Math.max(160, stage.clientWidth-16);
+    var availH=Math.max(160, stage.clientHeight-16);
+    var disp=Math.max(160, Math.min(availW, availH));
+    var kBack=Math.max(1, Math.min(6, Math.round(disp/canvasSize)));
+    zoomK=kBack;
+    cv.width=canvasSize*kBack; cv.height=canvasSize*kBack;
+    cv.style.width=disp+"px"; cv.style.height=disp+"px";
+    cssScale=disp/(canvasSize*kBack);
+  } else {
+    cv.width=canvasSize*zoomK; cv.height=canvasSize*zoomK;
+    cv.style.width=cv.width+"px"; cv.style.height=cv.height+"px";
+    cssScale=1;
+  }
   centerPlayer();
 }
 function centerPlayer(){
   if(!follow) return;
   var k=zoomK;
-  var cx=(game.px*CELL+8)*k, cy=(game.py*CELL+8)*k;
+  // 滚动坐标是 CSS 像素,需要乘上 CSS 缩放系数
+  var cx=(game.px*CELL+8)*k*cssScale, cy=(game.py*CELL+8)*k*cssScale;
   var sx=stage.clientWidth, sy=stage.clientHeight;
   var maxL=Math.max(0,stage.scrollWidth-sx), maxT=Math.max(0,stage.scrollHeight-sy);
   stage.scrollLeft=Math.max(0,Math.min(maxL, cx-sx/2));
@@ -1259,7 +1269,7 @@ window.addEventListener("blur",function(){ held=[]; q=null; });
 // 控件
 byId("btnFit").addEventListener("click",function(){ autoFit=true; resizeCanvas(); });
 byId("btnZo").addEventListener("click",function(){ autoFit=false; zoomK=Math.max(1,zoomK-1); resizeCanvas(); });
-byId("btnZi").addEventListener("click",function(){ autoFit=false; zoomK=Math.min(4,zoomK+1); resizeCanvas(); });
+byId("btnZi").addEventListener("click",function(){ autoFit=false; zoomK=Math.min(6,zoomK+1); resizeCanvas(); });
 byId("btnUndo").addEventListener("click",function(){ if(mainMode==="game"){ undo(); } });
 byId("btnMenu").addEventListener("click",function(){ setMode("menu"); });
 byId("btnCreditsBack").addEventListener("click",function(){ setMode("menu"); });
