@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  light.js
+/* PROMESST 2 网页版移植  05_light.js
    供电、光束传播、能力判定与射击
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

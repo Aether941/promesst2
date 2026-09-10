@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  history.js
+/* PROMESST 2 网页版移植  08_history.js
    差分撤销、快照与 IndexedDB 持久化
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

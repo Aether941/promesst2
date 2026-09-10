@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  state.js
+/* PROMESST 2 网页版移植  04_state.js
    游戏状态、玩家/rover 计时器与复位
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  input.js
+/* PROMESST 2 网页版移植  15_input.js
    键盘输入与控制面板事件绑定
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  move.js
+/* PROMESST 2 网页版移植  07_move.js
    玩家移动、双步、远行与拾取规则
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

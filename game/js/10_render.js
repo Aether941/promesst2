@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  render.js
+/* PROMESST 2 网页版移植  10_render.js
    世界渲染、结局动画与画面输出
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

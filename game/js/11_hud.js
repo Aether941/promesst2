@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  hud.js
+/* PROMESST 2 网页版移植  11_hud.js
    HUD 状态面板和能力灯刷新
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

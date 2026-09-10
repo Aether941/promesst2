@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  debug.js
+/* PROMESST 2 网页版移植  06_debug.js
    移动判定调试报告
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

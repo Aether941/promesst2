@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  constants.js
+/* PROMESST 2 网页版移植  01_constants.js
    规则常量、颜色/字体常量与特性开关
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

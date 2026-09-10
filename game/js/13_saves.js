@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  saves.js
+/* PROMESST 2 网页版移植  13_saves.js
    存档槽、导出与导入
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

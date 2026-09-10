@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  view.js
+/* PROMESST 2 网页版移植  14_view.js
    画面适配、缩放与跟随
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

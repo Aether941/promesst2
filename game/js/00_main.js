@@ -1,25 +1,24 @@
 "use strict";
-/* PROMESST 2 网页版移植  main.js
+/* PROMESST 2 网页版移植  16_main.js
    主循环、错误处理与启动入口
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
 /* ---------- ES Module 入口依赖:按原全局脚本依赖顺序加载 ---------- */
-import "../map-data.js";
-import "./constants.js";
-import "./assets.js";
-import "./world.js";
-import "./state.js";
-import "./light.js";
-import "./debug.js";
-import "./move.js";
-import "./history.js";
-import "./rover.js";
-import "./render.js";
-import "./hud.js";
-import "./menu.js";
-import "./saves.js";
-import "./view.js";
-import "./input.js";
+import "./01_constants.js";
+import "./02_assets.js";
+import "./03_world.js";
+import "./04_state.js";
+import "./05_light.js";
+import "./06_debug.js";
+import "./07_move.js";
+import "./08_history.js";
+import "./09_rover.js";
+import "./10_render.js";
+import "./11_hud.js";
+import "./12_menu.js";
+import "./13_saves.js";
+import "./14_view.js";
+import "./15_input.js";
 // ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑;渲染可选 30/60/90/120FPS,默认60) ----------
 const FPS_OPTIONS = [30, 60, 90, 120];
 // 当前帧率对应的渲染间隔(ms)。
@@ -128,7 +127,7 @@ Object.defineProperty(globalThis, "lastRender", {
   try {
     if (!RAW || RAW.length !== 24) {
       err(
-        "map-data.js 异常:期望 24 行,实际 " +
+        "00_map_data.js 异常:期望 24 行,实际 " +
           (RAW ? RAW.length : "未定义") +
           "。",
       );

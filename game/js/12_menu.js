@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  menu.js
+/* PROMESST 2 网页版移植  12_menu.js
    模式机、标题/菜单/Credits/结算
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

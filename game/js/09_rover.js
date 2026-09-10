@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  rover.js
+/* PROMESST 2 网页版移植  09_rover.js
    Rover 自主移动与主计时器步进
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

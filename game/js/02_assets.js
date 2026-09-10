@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  assets.js
+/* PROMESST 2 网页版移植  02_assets.js
    地图数据、精灵表采样与内置字体绘制工具
    拆分自原 game.js;模块加载顺序见 index.html。 */
 

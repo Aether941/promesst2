@@ -1,5 +1,5 @@
 "use strict";
-/* PROMESST 2 网页版移植  world.js
+/* PROMESST 2 网页版移植  03_world.js
    关卡解析与初始世界构建
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
