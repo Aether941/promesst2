@@ -48,6 +48,10 @@ var CCOL =["#ff6b6b","#59e06a","#5aa9ff","#ff9d5c","#ffe66d","#b07cff","#5ee8d8"
 var TILE_CN=["墙","门","开门","地板","底座","碎石","箭E","箭N","箭W","箭S","楼梯","蛋1","蛋2","蛋3","蛋4","蛋5","蛋6","蛋7","蛋8"];
 var OBJ_CN=["空","石块","宝石","投影器","魔杖","反射镜","rover"];
 
+// 原版内置字体(main.c L1685–1689):字符集与字宽,用于 YOU WIN / 气泡等世界内文字
+var FONT="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789>^<v/ ";
+var FSIZE=[4,4,4,4,4,4,4,4,3,4,4,4,5,4,4,4,4,4,4,3,4,5,5,5,5,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,4];
+
 // ---------- 里程碑特性开关 ----------
 var FEATURE_LIGHT=true;    // M3:供电+光束+能力 已启用
 var FEATURE_ROVER=true;    // M4:Rover 自主移动 + V 宝石拾放 已启用
@@ -72,6 +76,26 @@ function cellFrom(s,t){
           c.getContext("2d").drawImage(img, s*CELL,t*CELL,CELL,CELL, 0,0,CELL,CELL);
           tileCache[key]=c; }
   return c;
+}
+// 用精灵表内置字体写文本(移植 draw_text L1691–1705)
+function drawBmpText(g,x,y,size,text,spacing){
+  spacing=spacing||0;
+  for(var i=0;i<text.length;i++){
+    var idx=FONT.indexOf(text.charAt(i));
+    if(idx<0) continue;
+    var sx=1+(idx%21)*6, sy=113+Math.floor(idx/21)*8;
+    g.drawImage(img, sx,sy,5,7, x,y, size*5, size*7);
+    x += size*(FSIZE[idx]+1+spacing);
+  }
+  return x;
+}
+function bmpTextWidth(size,text,spacing){
+  spacing=spacing||0; var x=0;
+  for(var i=0;i<text.length;i++){
+    var idx=FONT.indexOf(text.charAt(i));
+    if(idx>=0) x += size*(FSIZE[idx]+1+spacing);
+  }
+  return x;
 }
 
 // ---------- 关卡解析(移植 init_game,同 ./map) ----------
@@ -192,6 +216,7 @@ var game={
 // 移动动画:原版只做“最后一格”的滑入(draw_world L2004–2009),
 // 这里只记录本次移动的起点,供“跨世界缝瞬移”判定;动画由 player_timer 驱动
 var animFromX=0, animFromY=0, animMove=false;
+var animcycle=0;               // 原版 animcycle(ms),用于闪烁/彩虹等动画
 var q=null;                   // 排队按键(单槽,同 C queued_key)
 var held=[];                  // 按住中的移动键(最近优先)
 var checkpoint=null;
@@ -599,33 +624,37 @@ function idbPut(key,val){
   });
 }
 function packSave(){
-  return { v:1, g:lastSnap, ck:ckptSnap, h:HISTORY };
+  return { v:1, g:lastSnap, ck:ckptSnap, h:HISTORY,
+           meta:{ savedAt:Date.now(), steps:game.steps,
+                  gems:game.gems_stored, wand:game.has_wand,
+                  cleared:!!clearedFlag, slot:activeSlot } };
 }
 function saveToDB(){
   if(!DB || !lastSnap) return Promise.resolve();
-  return idbPut("main",packSave());
+  return idbPut(slotKey(activeSlot),packSave());
 }
 function scheduleSave(){
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer=setTimeout(function(){ saveTimer=null; saveToDB(); },800);
 }
 // 读档(返回存档对象或 null)
-function loadFromDB(){
-  if(!DB) return Promise.resolve(null);
-  return idbGet("main").then(function(d){ return (d && d.g) ? d : null; })
-                       .catch(function(){ return null; });
-}
-function restoreSave(d){
-  reset();                                        // 先建一份干净的底层(解析+默认)
-  var g=d.g;
+function loadFromDB(){ return loadActiveSlot(); }
+// 把快照(存档 gamestate 或 ckptSnap)应用到当前世界
+function applySnap(g){
   for(var z=0;z<2;z++) for(var y=0;y<WH;y++) for(var x=0;x<WW;x++){
     world.tile[z][y][x]=g.tile[z][y][x];
     var o=world.obj[z][y][x];
     o.type=g.type[z][y][x]; o.dir=g.dir[z][y][x]; o.color=g.col[z][y][x];
   }
   applyP(g.player); applyT(g.t);
+  game.player_timer=0; animMove=false; lightDirty=true;
+}
+function restoreSave(d){
+  reset();                                        // 先建一份干净的底层(解析+默认)
+  applySnap(d.g);
   HISTORY=(d.h||[]).slice();
   ckptSnap=d.ck||null;
+  clearedFlag=!!(d.meta&&d.meta.cleared);
   lastSnap=buildSnap();
 }
 window.addEventListener("pagehide",function(){ if(DB&&lastSnap) saveToDB(); });
@@ -743,15 +772,93 @@ function update(ms){
     var ch=null;
     if(q){ ch=q; q=null; }
     else if(held.length){ ch=held[held.length-1]; }
-    if(!ch) return;
-    var dx=0,dy=0;
-    if(ch==="a") dx=-1; else if(ch==="d") dx=1;
-    else if(ch==="w") dy=-1; else if(ch==="s") dy=1;
-    if(dx||dy){ tryMove(dx,dy); commitHistory(); }
-    else if(ch==="x"){ shoot(); commitHistory(); }
-    else if(ch==="v"){ drop(); commitHistory(); }
-    else if(ch==="z"){ undo(); }
-    // c=反射镜(逻辑保留)——后续里程碑
+    if(ch){
+      var dx=0,dy=0;
+      if(ch==="a") dx=-1; else if(ch==="d") dx=1;
+      else if(ch==="w") dy=-1; else if(ch==="s") dy=1;
+      if(dx||dy){ tryMove(dx,dy); commitHistory(); }
+      else if(ch==="x"){ shoot(); commitHistory(); }
+      else if(ch==="v"){ drop(); commitHistory(); }
+      else if(ch==="z"){ undo(); }
+      // c=反射镜(逻辑保留)——后续里程碑
+    }
+  }
+
+  // 集满 30 颗后累计 egg_timer,驱动结局动画(照 C L1322–1324;必须与是否有输入无关)
+  if(game.gems_stored>=MAX_GEMS){ game.egg_timer += ms; }
+}
+
+// ---------- 结局/蜥蜴化/气泡(YOU WIN 等世界内文字用原版内置字体) ----------
+function drawEndingOverlay(g,k){
+  var z=game.pz, K=CELL*k;
+  var rover=null, y, x;
+  for(y=0;y<WH && !rover;y++) for(x=0;x<WW;x++)
+    if(world.obj[z][y][x].type===O.rover){ rover={x:x,y:y}; break; }
+
+  // 被喂饱的 rover“蜥蜴化”:彩虹光环(近似原版 L2035–2069)
+  if(rover && game.egg_timer>0){
+    var pulse=(Math.sin(animcycle/120)+1)/2;
+    g.save();
+    g.globalCompositeOperation="lighter";
+    g.globalAlpha=0.30+0.35*pulse;
+    g.fillStyle="hsl("+((animcycle/8)%360)+",85%,60%)";
+    g.fillRect(rover.x*K-K*0.3, rover.y*K-K*0.3, K*1.6, K*1.6);
+    g.restore();
+  }
+  // 气泡文字:照原版 L2144–2191(仅当 rover 在 z0 的 (2,3) 房间且已开始喂食)
+  if(rover && z===0 && ((rover.x/SX)|0)===2 && ((rover.y/SY)|0)===3 && game.gems_stored>=0){
+    var text=null;
+    if(game.gems_stored===0){ if(animcycle%15000<2000) text="?"; }
+    else if(game.egg_timer>=8000) text="WELL NOW";
+    else if(animcycle%45000<2000 || feed_timer>0){
+      var left=MAX_GEMS-game.gems_stored;
+      if(game.gems_stored>=1 && game.gems_stored<=12) text="NEED MORE";
+      else if(game.gems_stored%7===3) text=left+" TO GO";
+      else text=left+" MORE";
+    }
+    if(text){
+      var size=Math.max(0.9,k*0.55);
+      var w=bmpTextWidth(size,text,1);
+      g.save();
+      g.fillStyle="rgba(0,0,0,0.55)";
+      g.fillRect(rover.x*K+K/2-w/2-3, rover.y*K-size*10-3, w+6, size*9+6);
+      g.fillStyle="#ffffff";
+      drawBmpText(g, rover.x*K+K/2-w/2, rover.y*K-size*10, size, text, 1);
+      g.restore();
+    }
+  }
+  // 结局三阶段(照原版 L2382–2417)
+  if(game.egg_timer>8000){
+    var a=(game.egg_timer-8000)>>4;                 // 原版:比 >>4
+    var pv=powers[5];                               // COLOR_violet
+    var r=pv[0], gg=pv[1], b=pv[2];
+    if(a>=128){ r=Math.min(255,r+a-128); gg=Math.min(255,gg+a-128); b=Math.min(255,b+a-128); }
+    if(a>255) a=255;
+    g.save();
+    g.globalCompositeOperation="lighter";
+    g.globalAlpha=Math.min(1,a/255);
+    g.fillStyle="rgb("+r+","+gg+","+b+")";
+    g.fillRect(0,0,cv.width,cv.height);
+    g.restore();
+
+    if(game.egg_timer>14000){
+      g.save();
+      g.fillStyle="rgba(0,0,0,0.78)";
+      g.fillRect(0,0,cv.width,cv.height);
+      g.fillStyle="#ffffff";
+      var big=Math.max(2,k*2.2);
+      var t1="YOU WIN";
+      drawBmpText(g,(cv.width-bmpTextWidth(big,t1,1))/2,(cv.height-big*7)/2-10,big,t1,1);
+      if(game.egg_timer>17000){
+        var a2=Math.min(1,(game.egg_timer-17000)/2000);
+        var t2="USED "+game.num_zaps+" ZAPS";
+        var s2=Math.max(1.2,k*1.0);
+        g.fillStyle="rgba(255,190,255,"+a2+")";
+        drawBmpText(g,(cv.width-bmpTextWidth(s2,t2,1))/2,(cv.height+big*10)/2,s2,t2,1);
+      }
+      g.restore();
+    }
+    if(game.egg_timer>22000) enterResult();
   }
 }
 
@@ -867,35 +974,43 @@ function render(){
   // 辅助环(便于识别)
   ctx.strokeStyle="rgba(255,212,121,0.9)"; ctx.lineWidth=Math.max(2,k*0.4);
   ctx.strokeRect(drawX*K+1, drawY*K+1, K-2, K-2);
+  drawEndingOverlay(ctx,k);
   refreshHud();
 }
 
 // ---------- HUD ----------
-var hud={z:"",xy:"",room:"",face:"",steps:"",ab:"",wand:"",gems:"",undo:""};
+var hud={z:"",xy:"",room:"",face:"",steps:"",carry:"",wand:"",gems:"",undo:""};
 function refreshHud(){
   var z=game.pz, x=game.px, y=game.py;
   var rx=(x/SX)|0, ry=(y/SY)|0;
   var zs="Z"+z, xys="("+x+","+y+")", rs="("+rx+","+ry+")",
-      fs=DIRNAME[game.pdir], st=String(game.steps);
+      fs=DIRNAME[game.pdir], st=String(game.steps), cs=String(game.num_gems);
   if(hud.z!==zs){ hud.z=zs; byId("bz").textContent=zs; }
   if(hud.xy!==xys){ hud.xy=xys; byId("bxy").textContent=xys; }
   if(hud.room!==rs){ hud.room=rs; byId("broom").textContent=rs; }
   if(hud.face!==fs){ hud.face=fs; byId("bfacing").textContent=fs; }
   if(hud.steps!==st){ hud.steps=st; byId("bsteps").textContent=st; }
+  if(hud.carry!==cs){ hud.carry=cs; byId("bcarry").textContent=cs; }
   var ws=game.has_wand?"有":"无";
   if(hud.wand!==ws){ hud.wand=ws; byId("bwand").textContent=ws; }
   var gs=(game.gems_stored>=0)?(game.gems_stored+"/"+MAX_GEMS):"—";
   if(hud.gems!==gs){ hud.gems=gs; byId("bgems").textContent=gs; }
   var u=String(HISTORY.length);
   if(hud.undo!==u){ hud.undo=u; byId("bund").textContent=u; }
-  // 当前可用能力(站在什么颜色的光束里)
+  // 能力灯:照到=亮,用过(ability_flag)=暗(原版 HUD 语义 L2294–2305)
   if(FEATURE_LIGHT){
     var ab=[0,0,0,0,0,0,0,0];
     getAbilities(ab);
-    var names=[];
-    for(var i=0;i<8;i++) if(ab[i]) names.push(CNAMES[i]);
-    var as=names.length?names.join(" "):"—";
-    if(hud.ab!==as){ hud.ab=as; byId("bab").textContent=as; }
+    var lamps=byId("lamps");
+    if(lamps){
+      var kids=lamps.children;
+      for(var li=0;li<kids.length;li++){
+        var c=parseInt(kids[li].getAttribute("data-c"),10);
+        var on=ab[c]>0, used=(game.ability_flag&(1<<c))!==0;
+        kids[li].classList.toggle("on",on);
+        kids[li].classList.toggle("used",!on&&used);
+      }
+    }
     // 调试:玩家格四向入射光(E/N/W/S 各是什么颜色),用于核对紫光远行
     if(debugOn && lightCache[z]){
       var L=lightCache[z].L;
@@ -910,6 +1025,180 @@ function refreshHud(){
   }
 }
 function byId(id){ return document.getElementById(id); }
+
+// ---------- M6:模式机 / 菜单 / Credits / 存档槽 / 结算 ----------
+var mainMode="logo";          // logo|menu|credits|slots|game|result
+var logoTime=1500;            // 原版 MAX_LOGO = 1500ms
+var gameStarted=false;
+var menuSel=0;
+var clearedFlag=false;
+var MENU=[
+  {id:"continue",label:"继续游戏",      sub:"回到当前进度"},
+  {id:"wand",    label:"从魔杖恢复",    sub:"回到拾到魔杖那一刻的快照"},
+  {id:"new",     label:"新游戏",        sub:"从头开始(清空撤销历史)"},
+  {id:"slots",   label:"存档管理",      sub:"3 个存档槽 / 导出导入"},
+  {id:"credits", label:"Credits",       sub:"原作者与贡献者"},
+  {id:"quit",    label:"保存并回到标题",sub:"保存当前进度"}
+];
+function menuEnabled(){
+  return MENU.map(function(it){
+    if(it.id==="continue") return gameStarted;
+    if(it.id==="wand")     return !!ckptSnap;
+    return true;
+  });
+}
+function buildMenu(){
+  var host=byId("menuItems");
+  if(!host) return;
+  host.innerHTML="";
+  MENU.forEach(function(it,i){
+    var b=document.createElement("button");
+    b.innerHTML=it.label+"<small>"+it.sub+"</small>";
+    b.addEventListener("click",function(){ if(!b.disabled){ menuSel=i; activateMenu(); } });
+    host.appendChild(b);
+  });
+  refreshMenu();
+}
+function refreshMenu(){
+  var host=byId("menuItems"); if(!host) return;
+  var en=menuEnabled(), ch=host.children;
+  for(var i=0;i<ch.length;i++){
+    ch[i].disabled=!en[i];
+    ch[i].className=(i===menuSel?"sel":"");
+  }
+  byId("menuNote").textContent = gameStarted ? "" : "当前没有存档:请选择“新游戏”开始。";
+}
+function moveMenuSel(dir){
+  var en=menuEnabled();
+  for(var k=0;k<MENU.length;k++){
+    menuSel=(menuSel+dir+MENU.length)%MENU.length;
+    if(en[menuSel]) break;
+  }
+  refreshMenu();
+}
+function showScreen(name){
+  ["scrLogo","scrMenu","scrCredits","scrSlots","scrResult"].forEach(function(id){
+    var el=byId(id); if(el) el.classList.toggle("on", id==="scr"+name);
+  });
+}
+function setMode(m){
+  mainMode=m;
+  var map={logo:"Logo",menu:"Menu",credits:"Credits",slots:"Slots",result:"Result"};
+  showScreen(map[m]||"");
+  if(m==="menu") refreshMenu();
+  if(m==="game"){ last=(typeof performance!=="undefined"?performance.now():0); acc=0; }  // 暂停后避免大 dt
+}
+function activateMenu(){
+  var id=MENU[menuSel].id;
+  if(id==="continue"){ gameStarted=true; setMode("game"); }
+  else if(id==="wand"){
+    if(!ckptSnap) return;
+    applySnap(ckptSnap);
+    HISTORY=[]; lastSnap=buildSnap(); lightDirty=true;   // 原版:恢复 checkpoint 会清空 undo
+    gameStarted=true; setMode("game"); scheduleSave();
+  }
+  else if(id==="new"){ reset(); gameStarted=true; setMode("game"); scheduleSave(); }
+  else if(id==="slots"){ setMode("slots"); renderSlots(); }
+  else if(id==="credits"){ setMode("credits"); }
+  else if(id==="quit"){ scheduleSave(); setMode("menu"); }
+}
+function enterResult(){
+  if(mainMode==="result") return;
+  clearedFlag=true;
+  HISTORY=[];                        // 原版通关不落档;这里只清历史并记录通关标记
+  scheduleSave();
+  byId("resZaps").textContent="USED "+game.num_zaps+" ZAPS";
+  byId("resFed").textContent="已喂宝石 "+game.gems_stored+"/"+MAX_GEMS;
+  setMode("result");
+}
+
+// ---------- 存档槽(3 槽 + 导出/导入) ----------
+var activeSlot=1;
+function slotKey(i){ return "v1.slot"+i; }
+function loadActiveSlot(){
+  try{ var s=parseInt(localStorage.getItem("promesst2.activeSlot")||"1",10);
+       if(s>=1&&s<=3) activeSlot=s; }catch(e){}
+  return idbGet(slotKey(activeSlot)).then(function(d){
+    if(d&&d.g) return d;
+    return idbGet("main");           // 兼容 M5 旧存档
+  }).catch(function(){ return null; });
+}
+function setActiveSlot(i){
+  activeSlot=i;
+  try{ localStorage.setItem("promesst2.activeSlot",String(i)); }catch(e){}
+}
+function fmtTime(ms){
+  if(!ms) return "—";
+  var d=new Date(ms);
+  function p(n){ return (n<10?"0":"")+n; }
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+function renderSlots(){
+  var host=byId("slotList"); if(!host) return;
+  host.innerHTML="";
+  var jobs=[];
+  for(var i=1;i<=3;i++) jobs.push(idbGet(slotKey(i)).catch(function(){ return null; }));
+  Promise.all(jobs).then(function(list){
+    list.forEach(function(d,idx){
+      var i=idx+1, m=d&&d.meta?d.meta:null;
+      var row=document.createElement("div");
+      row.className="slot"+(i===activeSlot?" active":"");
+      var info=document.createElement("div");
+      info.className="info";
+      info.innerHTML="<b>槽 "+i+"</b>"+(i===activeSlot?" (当前)":"")+" — "+
+        (m?("保存于 "+fmtTime(m.savedAt)+" · 步数 "+m.steps+" · 已喂 "+(m.gems>=0?m.gems:0)+"/30"+
+            (m.wand?" · 有魔杖":"")+(m.cleared?" · 已通关":"")):"（空）");
+      row.appendChild(info);
+      function mk(label,fn){
+        var b=document.createElement("button"); b.className="btn"; b.textContent=label;
+        b.addEventListener("click",fn); row.appendChild(b);
+      }
+      mk("读取",function(){
+        idbGet(slotKey(i)).then(function(dd){
+          if(!dd||!dd.g){ byId("slotHint").textContent="槽 "+i+" 为空。"; return; }
+          setActiveSlot(i); restoreSave(dd); gameStarted=true;
+          byId("slotHint").textContent="已读取槽 "+i+"。";
+          setMode("game");
+        });
+      });
+      mk("保存到此处",function(){
+        var prev=activeSlot; setActiveSlot(i);
+        saveToDB().then(function(){ renderSlots();
+          byId("slotHint").textContent="已保存到槽 "+i+(prev!==i?"(当前槽已切换)":"")+"。"; });
+      });
+      mk("设为当前",function(){ setActiveSlot(i); renderSlots();
+        byId("slotHint").textContent="当前槽 = "+i+"(自动存档将写入此槽)。"; });
+      mk("删除",function(){
+        idbPut(slotKey(i),null).then(function(){ renderSlots();
+          byId("slotHint").textContent="已删除槽 "+i+"。"; });
+      });
+      host.appendChild(row);
+    });
+  });
+}
+function exportSave(){
+  var data=JSON.stringify(packSave());
+  var blob=new Blob([data],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="promesst2-slot"+activeSlot+".json";
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },3000);
+}
+function importSave(file){
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var d=JSON.parse(fr.result);
+      if(!d||!d.g||!d.g.tile) throw new Error("不是有效的存档 JSON");
+      idbPut(slotKey(activeSlot),d).then(function(){
+        restoreSave(d); gameStarted=true; renderSlots();
+        byId("slotHint").textContent="已导入到槽 "+activeSlot+"。";
+      });
+    }catch(ex){ byId("slotHint").textContent="导入失败:"+ex.message; }
+  };
+  fr.readAsText(file);
+}
 
 // ---------- 视野:适配/缩放/跟随 ----------
 var stage=byId("stage");
@@ -934,10 +1223,24 @@ function centerPlayer(){
 }
 function onViewChanged(center){ if(center) resizeCanvas(); }
 
-// ---------- 输入 ----------
+// ---------- 输入(按模式分发:游戏 / 菜单 / 子页面) ----------
 var KEYMAP={ ArrowUp:"w", KeyW:"w", ArrowDown:"s", KeyS:"s",
              ArrowLeft:"a", KeyA:"a", ArrowRight:"d", KeyD:"d" };
 window.addEventListener("keydown",function(e){
+  // 菜单:上下选择 / 回车确认 / Esc 返回游戏
+  if(mainMode==="menu"){
+    if(e.code==="ArrowUp"||e.code==="KeyW"){ e.preventDefault(); moveMenuSel(-1); return; }
+    if(e.code==="ArrowDown"||e.code==="KeyS"){ e.preventDefault(); moveMenuSel(1); return; }
+    if(e.code==="Enter"||e.code==="Space"||e.code==="NumpadEnter"){ e.preventDefault(); activateMenu(); return; }
+    if(e.code==="Escape"&&gameStarted){ e.preventDefault(); setMode("game"); return; }
+    return;
+  }
+  if(mainMode==="credits"||mainMode==="slots"){
+    if(e.code==="Escape"||e.code==="Enter"){ e.preventDefault(); setMode("menu"); }
+    return;
+  }
+  if(mainMode!=="game") return;               // logo / result:交给按钮
+  if(e.code==="Escape"){ e.preventDefault(); setMode("menu"); return; }
   var c=KEYMAP[e.code];
   if(c){ e.preventDefault(); q=c;
     var i=held.indexOf(c); if(i>=0) held.splice(i,1);
@@ -957,7 +1260,19 @@ window.addEventListener("blur",function(){ held=[]; q=null; });
 byId("btnFit").addEventListener("click",function(){ autoFit=true; resizeCanvas(); });
 byId("btnZo").addEventListener("click",function(){ autoFit=false; zoomK=Math.max(1,zoomK-1); resizeCanvas(); });
 byId("btnZi").addEventListener("click",function(){ autoFit=false; zoomK=Math.min(4,zoomK+1); resizeCanvas(); });
-byId("btnRestart").addEventListener("click",function(){ reset(); resizeCanvas(); render(); scheduleSave(); });
+byId("btnUndo").addEventListener("click",function(){ if(mainMode==="game"){ undo(); } });
+byId("btnMenu").addEventListener("click",function(){ setMode("menu"); });
+byId("btnCreditsBack").addEventListener("click",function(){ setMode("menu"); });
+byId("btnSlotsBack").addEventListener("click",function(){ setMode("menu"); });
+byId("btnExport").addEventListener("click",exportSave);
+byId("fileImport").addEventListener("change",function(e){
+  if(e.target.files&&e.target.files[0]) importSave(e.target.files[0]);
+  e.target.value="";
+});
+byId("btnAgain").addEventListener("click",function(){
+  clearedFlag=false; reset(); gameStarted=true; setMode("game"); scheduleSave();
+});
+byId("btnResultMenu").addEventListener("click",function(){ setMode("menu"); });
 byId("ckFollow").addEventListener("change",function(e){ follow=e.target.checked; centerPlayer(); });
 byId("ckGrid").addEventListener("change",function(e){ showGrid=e.target.checked; });
 byId("ckDbg").addEventListener("change",function(e){
@@ -965,21 +1280,30 @@ byId("ckDbg").addEventListener("change",function(e){
   byId("dbgrow").style.display=debugOn?"block":"none";
 });
 byId("dbgWand").addEventListener("click",function(){ cheatWand(); });
+byId("dbgFeed").addEventListener("click",function(){ game.gems_stored=MAX_GEMS; });   // 调试:直接触发结局
 byId("dbgNoclip").addEventListener("click",function(){
   cheatNoclip();
   byId("dbgNoclipState").textContent="穿墙:"+(noclip?"开":"关");
 });
 window.addEventListener("resize",function(){ if(autoFit) resizeCanvas(); });
 
-// ---------- 主循环(rAF + 16ms 步进) ----------
+// ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑) ----------
 var last=performance.now(), acc=0;
 function loop(now){
   var dt=Math.min(now-last,250); last=now;
-  acc+=dt; var guard=0;
-  while(acc>=16 && guard<8){ update(16); acc-=16; guard++; }
-  if(guard>=8) acc=0;
+  animcycle+=dt;
+  if(mainMode==="logo"){
+    logoTime-=dt;
+    if(logoTime<=0) setMode("menu");
+  } else if(mainMode==="game"){
+    acc+=dt; var guard=0;
+    while(acc>=16 && guard<8){ update(16); acc-=16; guard++; }
+    if(guard>=8) acc=0;
+  } else {
+    acc=0;                      // 菜单/结算:暂停模拟(与原版 process_metagame 一致)
+  }
   render();
-  if(follow) centerPlayer();
+  if(mainMode==="game" && follow) centerPlayer();
   requestAnimationFrame(loop);
 }
 
@@ -1002,14 +1326,17 @@ window.addEventListener("unhandledrejection",function(e){
         var tc=tmp.getContext("2d"); tc.drawImage(img,0,0);
         imgData=tc.getImageData(0,0,ATLAS,ATLAS);
         computePowers();
-        // 尝试打开 IndexedDB 读档;失败则新开局(旧流程照常可玩)
-        var p=openDB().then(function(){ return loadFromDB(); })
+        // 打开 IndexedDB → 读取“当前槽”(兼容 M5 的 main 键) → Logo → 菜单
+        var p=openDB().then(function(){ return loadActiveSlot(); })
                       .catch(function(){ return null; });
         p.then(function(save){
-          if(save && save.g) restoreSave(save);
-          else reset();
+          if(save && save.g){ restoreSave(save); gameStarted=true; }
+          else { reset(); gameStarted=false; }
           resizeCanvas();
           render();
+          buildMenu();
+          logoTime=1500;
+          setMode("logo");
           requestAnimationFrame(loop);
         });
       }catch(ex){ err("初始化失败:\n"+ex.message+"\n(file:// 打开可能有跨域限制,请用 Live Server 或 python -m http.server)"); }

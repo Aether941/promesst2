@@ -248,3 +248,36 @@ M1 静态(已具备)→ M2 移动/整图渲染 → M3 光束+能力+撤销骨架
 1. “查看另一层”视角键默认做(M6);
 2. 整图默认倍率适配窗口,默认开“跟随玩家”;
 3. 撤销软警戒 64 MB;IndexedDB 无硬上限;均可在设置调整。
+
+---
+
+## 13. 实现进度与交付记录
+
+| 里程碑 | 状态 | 产物 |
+|---|---|---|
+| M1 解析 + 静态双图层 | ✅ | `map/index.html`、`map/map-data.js` |
+| M2 移动/整图渲染/缩放/计时器 | ✅ | `game/index.html`、`game/game.js` |
+| M3 供电/光束/5 色能力/X 射击 | ✅ | 同上 |
+| M4 宝石拾放 / Rover 自主移动 | ✅ | 同上 |
+| M5 差分撤销(一次性、无上限)+ IndexedDB | ✅ | 同上 |
+| M6 Logo/菜单/Credits/存档管理/结算/HUD | ✅ | 同上 + `game/assets/{title,sss_logo}.png` |
+
+### M6 交付明细(对照原版行号)
+
+| 环节 | 实现 | 原版出处 |
+|---|---|---|
+| Logo → 菜单 | `logoTime=1500ms` 后进菜单 | `MAX_LOGO` L1551、`process_metagame` L1554 |
+| 菜单项与可用性 | 继续(需开局)/ 从魔杖恢复(需 `ckptSnap`,即拾到魔杖)/ 新游戏 / 存档管理 / Credits / 保存并回到标题;上下键选择会跳过不可用项 | `choices` L1340–1348、`get_choices` L1385–1394、`move_selection` L1396、`do_metagame_key` L1510 |
+| 从魔杖恢复 | 应用 `ckptSnap` 并**清空撤销历史**(原版 `restore_map(&checkpoint)+flush_undo`) | L1527–1532 |
+| Credits | 名单与顺序照抄(GAME BY / ENDGAME ART / TWIST / LINUX PORT / PLAYTEST) | `credits[]` L1354–1382 |
+| 结局四阶段 | `egg_timer>8000` 紫→白加法闪光;`>14000` YOU WIN;`>17000` USED n ZAPS;`>22000` 结算页(清历史 + 标记 cleared) | L2382–2417 |
+| 气泡文字 | 仅当 rover 在 z0 房间 (2,3) 且已开始喂食:`?` / `N MORE` / `N TO GO`(`gems%7==3`)/ `NEED MORE`(1–12)/ `WELL NOW`(`egg_timer>=8000`),并保留 `animcycle%15000<2000`、`%45000<2000`、`feed_timer>0` 的闪烁条件 | L2144–2191 |
+| 蜥蜴化 | 近似:喂满后 rover 处叠加彩虹光环 | L2035–2069 |
+| 世界内文字 | 复用精灵表内置字体(`draw_text` 移植:字符集 + `fsize[42]`) | L1685–1705 |
+| HUD | 能力灯(照到=亮/用过=暗,同 `ability_flag` 语义)、宝石携带数、已喂、魔杖、可撤销步数、方向/房间/步数 | L2276–2372 |
+| 存档 | 3 槽(`v1.slot1..3`)+ 导出/导入 JSON;自动存档写入“当前槽”;兼容 M5 的 `main` 键 | §6.7 |
+
+### 本轮修复的实现缺陷(由无头冒烟测试发现)
+
+- `update()` 中 `if(!ch) return;` 会在**无输入时提前返回**,导致 `egg_timer` 永不累积、结局无法触发。已改为“无输入只跳过输入分发”,`egg_timer` 照 C L1322–1324 在每 tick 末尾累加。
+- 冒烟测试同时覆盖:Logo→菜单时序、菜单可用性、新游戏、移动/撤销、结局四阶段与结算页、存档 pack/restore 往返、无 IndexedDB 时的优雅降级(13/13 通过)。
