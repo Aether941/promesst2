@@ -487,24 +487,16 @@ function tryMove(x,y){
       var isMid=(k<stepN);
       var tT=world.tile[z][cy][cx], oT=world.obj[z][cy][cx];
       if(isMid){
-        if(tT===T.door){                                  // 中途门:可开则开并停,不可开则挡
-          if(!abilities[POW_doors])
-            return ret(false,"被挡:双步中途 "+dbgCellDesc(z,cx,cy)+" 是门,缺红光");
-          setUsed(POW_doors); game.ability_flag=used;
-          world.tile[z][cy][cx]=T.opendoor;
-          game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-          return ret("open","开门(双步中途) "+dbgCellDesc(z,cx,cy)+" → open_door,人不动");
-        }
-        if(oT.type===O.stone){                            // 中途石:可碎则碎并停,不可碎则挡
-          if(!abilities[POW_destroy])
-            return ret(false,"被挡:双步中途 "+dbgCellDesc(z,cx,cy)+" 是石块,缺黄光");
-          setUsed(POW_destroy); game.ability_flag=used;
-          oT.type=O.empty;
-          game.pdir=proposed_pdir; lightDirty=true; pauseInput();
-          return ret("destroy","碎石(双步中途) "+dbgCellDesc(z,cx,cy)+" → 清空,人不动");
-        }
-        dbgAdd(D,"双步第"+k+"格(中途) "+dbgCellDesc(z,cx,cy)+" → 按原版放行(不判定)");
-        continue;                                         // 墙/投影器等中途按原版“过路”放行
+        // 原版 main.c L772–801:橙光双步只判定“终点”那一格;中途格一律越过
+        // (不开门、不碎石、不看墙/投影器/反射镜)——因此无红光也能“跳过”门。
+        var midNote="";
+        if(tT===T.door)           midNote="(门:越过,不开)";
+        else if(oT.type===O.stone) midNote="(石块:越过,不碎)";
+        else if(tT===T.wall)       midNote="(墙:越过)";
+        else if(oT.type===O.projector) midNote="(投影器:越过)";
+        else if(oT.type===O.refl)  midNote="(反射镜:越过)";
+        dbgAdd(D,"双步第"+k+"格(中途) "+dbgCellDesc(z,cx,cy)+" → 原版只判终点,直接越过"+midNote);
+        continue;
       }
       var kind=cellKind(z,cx,cy,abilities);               // 终点判定(照原版;cellKind 参数为 列,行)
       if(kind==="block")
