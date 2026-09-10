@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "ritwickdey.LiveServer",
+    "ecmel.vscode-html-css",
+    "stylelint.vscode-stylelint",
+    "formulahendry.auto-rename-tag",
+    "naumovs.color-highlight"
+  ]
+}
