@@ -4,6 +4,13 @@
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
 // ---------- Rover(移植 move_rovers 体系,L1093–1218;同房同步,单/多只通用) ----------
+/**
+ * 功能:判断 rover 能否进入指定格;allowGem 控制是否允许吃宝石。
+ * @param {*} z
+ * @param {*} cx
+ * @param {*} cy
+ * @param {*} allowGem
+ */
 function roverCanEnter(z, cx, cy, allowGem) {
   if (cx < 0 || cx >= WW || cy < 0 || cy >= WH) return false;
   const t = world.tile[z][cy][cx];
@@ -13,6 +20,13 @@ function roverCanEnter(z, cx, cy, allowGem) {
   return o.type === O.empty;
 }
 // rover 首选方向:反转期(reverse>0)保持直行;否则踩箭头按箭头,被堵尝试掉头
+/**
+ * 功能:计算 rover 的下一步方向:反转期直行,否则按箭头并在堵住时尝试掉头。
+ * @param {*} z
+ * @param {*} rover
+ * @param {*} cx
+ * @param {*} cy
+ */
 function roverDir(z, rover, cx, cy) {
   let d = rover.dir;
   if (reverse_timer > 0) return d;
@@ -24,7 +38,11 @@ function roverDir(z, rover, cx, cy) {
   return -1;
 }
 // 驱动玩家所在层的所有房间(每 630ms 一次,同 C 只跑 pz 层)
+/**
+ * 功能:同步步进玩家所在层所有房间的 rover,处理吃宝石、反转计时和碰撞。
+ */
 function stepRovers() {
+  // 实现:先处理反转结束调头,再按房间收集 rover 并同步计算目标/碰撞/吃宝石。
   const z = game.pz;
   // 反转计时到 0:首只 rover 调头 180° 并恢复箭头逻辑(照 C L1168–1171/L1216–1217)
   if (reverse_timer === 0) {
@@ -85,7 +103,12 @@ function stepRovers() {
 }
 
 // ---------- 计时器步进(移植 timestep,L1237–1325:M3 能力 + M4 rover/宝石) ----------
+/**
+ * 功能:按毫秒推进喂食/反转/rover/玩家输入和结局计时。
+ * @param {*} ms
+ */
 function update(ms) {
+  // 实现:按顺序推进计时器、rover 步进、玩家输入处理与结局计时。
   // 魔杖归一(照 C:has_wand && gems_stored<0 → 0)
   if (game.has_wand && game.gems_stored < 0) game.gems_stored = 0;
 

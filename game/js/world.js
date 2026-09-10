@@ -4,7 +4,11 @@
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
 // ---------- 关卡解析(移植 init_game,同 ./map) ----------
+/**
+ * 功能:解析 RAW 地图:构建 tile/obj 双层数组,放置玩家、宝石、投影器、rover、蛋基座,并修正 rover 初向。
+ */
 function parseWorld() {
+  // 实现:先初始化双层 tile/obj,再逐格解析字符,最后处理蛋基座与 rover 初向。
   const tile = [[], []],
     obj = [[], []];
   let player = null,

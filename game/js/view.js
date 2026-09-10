@@ -6,7 +6,11 @@
 // ---------- 视野:适配(吃满可视区)/ 手动缩放 / 跟随 ----------
 const stage = byId("stage");
 let cssScale = 1; // 画布 CSS 显示尺寸 / 后备缓冲尺寸(适配模式下可能 <1,避免模糊)
+/**
+ * 功能:根据适配/手动缩放模式调整 canvas 后备缓冲和 CSS 尺寸。
+ */
 function resizeCanvas() {
+  // 实现:根据 autoFit 或手动倍率设置 canvas 尺寸和 CSS 显示尺寸。
   if (autoFit) {
     // 用 min(可视宽, 可视高) 的正方形尽量占满;后备缓冲取“接近显示倍率”的整数倍再交给 CSS 缩放
     const availW = Math.max(160, stage.clientWidth - 16);
@@ -28,6 +32,9 @@ function resizeCanvas() {
   }
   centerPlayer();
 }
+/**
+ * 功能:把视口滚动到玩家所在位置附近。
+ */
 function centerPlayer() {
   if (!follow) return;
   const k = zoomK;
@@ -41,6 +48,10 @@ function centerPlayer() {
   stage.scrollLeft = Math.max(0, Math.min(maxL, cx - sx / 2));
   stage.scrollTop = Math.max(0, Math.min(maxT, cy - sy / 2));
 }
+/**
+ * 功能:视图变化回调;center 为 true 时重新适配画布。
+ * @param {*} center
+ */
 function onViewChanged(center) {
   if (center) resizeCanvas();
 }

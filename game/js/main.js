@@ -5,10 +5,14 @@
 
 // ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑;渲染可选 30/60/90/120FPS,默认60) ----------
 const FPS_OPTIONS = [30, 60, 90, 120];
+// 当前帧率对应的渲染间隔(ms)。
 let renderInterval = 1000 / 60;
+// 上一帧时间戳和 16ms 模拟 accumulator。
 let last = performance.now(),
   acc = 0;
+// 上一次实际渲染的时间戳,用于限帧。
 let lastRender = 0;
+// 帧率下拉框 DOM。
 const selFps = byId("selFps");
 if (selFps) {
   selFps.value = "60";
@@ -20,7 +24,12 @@ if (selFps) {
     }
   });
 }
+/**
+ * 功能:rAF 主循环:推进时间/模式/16ms 模拟,并按所选 FPS 限帧渲染。
+ * @param {*} now
+ */
 function loop(now) {
+  // 实现:每帧推进时间;按 16ms 补步进更新逻辑;按 FPS 间隔限帧渲染。
   const dt = Math.min(now - last, 250);
   last = now;
   animcycle += dt;
@@ -48,6 +57,10 @@ function loop(now) {
 }
 
 // ---------- 错误与启动 ----------
+/**
+ * 功能:在页面上显示错误信息。
+ * @param {*} msg
+ */
 function err(msg) {
   const e = byId("err");
   e.style.display = "block";

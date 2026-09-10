@@ -4,7 +4,13 @@
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
 // ---------- 结局/蜥蜴化/气泡(YOU WIN 等世界内文字用原版内置字体) ----------
+/**
+ * 功能:绘制 rover 彩虹/气泡、闪白和 YOU WIN 结局文字。
+ * @param {*} g
+ * @param {*} k
+ */
 function drawEndingOverlay(g, k) {
+  // 实现:先画 rover 彩虹与气泡,再按 egg_timer 阶段绘制结局画面。
   const z = game.pz,
     K = CELL * k;
   let rover = null,
@@ -125,18 +131,28 @@ function drawEndingOverlay(g, k) {
 
 // ---------- 渲染 ----------
 const cv = document.getElementById("cv");
+// 游戏主画布的 2D 上下文。
 const ctx = cv.getContext("2d");
+// 手动缩放倍率;autoFit/follow/showGrid 为适配/跟随/网格开关。
 let zoomK = 2,
   autoFit = true,
   follow = true,
   showGrid = false;
+// 未缩放的单屏逻辑尺寸。
 const canvasSize = 384;
 
+/**
+ * 功能:返回当前每格像素大小。
+ */
 function kPx() {
   return CELL * zoomK;
 }
 
+/**
+ * 功能:绘制当前整幅画面:地图、物体、光束、网格、玩家、结局层和 HUD。
+ */
 function render() {
+  // 实现:依次绘制地图瓦片、物体、光束、网格、玩家、结局层和 HUD。
   if (!world || !img) return;
   const z = game.pz,
     k = zoomK,

@@ -4,18 +4,33 @@
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
 // ---------- 移动(移植 move(),L742–853;双步按逐格判定,门/石中途拦截) ----------
+/**
+ * 功能:玩家移动主入口,处理穿墙、紫光远行、橙光双步、开门/碎石、楼梯、拾取魔杖与历史提交。
+ * @param {*} x
+ * @param {*} y
+ */
 function tryMove(x, y) {
+  // 实现:先判定能力和路径,再处理终点门/石/楼梯/拾取,最后更新位置并提交历史。
   const z = game.pz;
   if (FEATURE_LIGHT) ensureLight();
   const abilities = [0, 0, 0, 0, 0, 0, 0, 0];
   getAbilities(abilities);
   const proposed_pdir = x ? (x < 0 ? DIR_W : DIR_E) : y < 0 ? DIR_N : DIR_S;
   let used = game.ability_flag;
+  /**
+   * 功能:把能力位 b 标记为本次已使用。
+   * @param {*} b
+   */
   function setUsed(b) {
     used |= 1 << b;
   }
 
   const D = dbgStart(x, y, z); // 调试报告(未开调试时为 null)
+  /**
+   * 功能:结束一次移动:写调试报告并返回结果。
+   * @param {*} res
+   * @param {*} desc
+   */
   function ret(res, desc) {
     dbgFinish(D, desc);
     return res;
@@ -46,6 +61,11 @@ function tryMove(x, y) {
   }
 
   const L = FEATURE_LIGHT ? lightCache[z] : null;
+  /**
+   * 功能:判断指定行列在 proposed_pdir 方向或反方向是否有紫光远行能力。
+   * @param {*} r
+   * @param {*} c
+   */
   function litViolet(r, c) {
     // (行,列),与 L[r][c] 一致;带边界防护
     return !!(
@@ -254,6 +274,9 @@ function tryMove(x, y) {
   );
 }
 
+/**
+ * 功能:返回玩家状态快照,供调试/存档逻辑使用。
+ */
 function snapshotState() {
   return {
     px: game.px,

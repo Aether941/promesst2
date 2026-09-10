@@ -8,16 +8,21 @@ const SX = 6,
   SY = 6,
   NX = 4,
   NY = 4; // 房间 6×6,每层 4×4
+// 世界总宽 WW、总高 WH(单位:格)。
 const WW = NX * SX,
   WH = NY * SY; // 24×24
+// 方向枚举:0=E,1=N,2=W,3=S。
 const DIR_E = 0,
   DIR_N = 1,
   DIR_W = 2,
   DIR_S = 3;
+// 四个方向对应的 x/y 位移;索引与 DIR_* 一致。
 const XD = [1, 0, -1, 0],
   YD = [0, -1, 0, 1];
+// 方向显示名,索引与 DIR_* 一致。
 const DIRNAME = ["E", "N", "W", "S"];
 
+// 瓦片类型枚举。
 const T = {
   wall: 0,
   door: 1,
@@ -32,7 +37,9 @@ const T = {
   stairs: 10,
   egg: 11,
 };
+// 蛋与结局相关瓦片的起始编号。
 const EGG_BASE = 11;
+// 物体类型枚举。
 const O = {
   empty: 0,
   stone: 1,
@@ -73,6 +80,7 @@ const TILE_SPR = [
   [6, 5],
   [6, 6],
 ];
+// 物体在精灵表中的行列索引。
 const OBJ_SPR = [
   [6, 1],
   [2, 1],
@@ -85,6 +93,7 @@ const OBJ_SPR = [
 
 // 投影器字母→颜色/方向(与 lights[]/lightdata[] 一致)
 const LIGHTS = "rRPwgGHyYLtTVjoOAa";
+// 投影器字符对应的颜色和初始朝向。
 const LIGHTDATA = [
   {c: 0, d: DIR_E},
   {c: 0, d: DIR_N},
@@ -105,7 +114,9 @@ const LIGHTDATA = [
   {c: 3, d: DIR_N},
   {c: 3, d: DIR_S},
 ];
+// 颜色显示名,索引与颜色枚举一致。
 const CNAMES = ["红", "绿", "蓝", "橙", "黄", "紫", "青", "粉"];
+// 颜色十六进制值,索引与颜色枚举一致。
 const CCOL = [
   "#ff6b6b",
   "#59e06a",
@@ -138,10 +149,12 @@ const TILE_CN = [
   "蛋7",
   "蛋8",
 ];
+// 物体调试中文名,索引与 O 一致。
 const OBJ_CN = ["空", "石块", "宝石", "投影器", "魔杖", "反射镜", "rover"];
 
 // 原版内置字体(main.c L1685–1689):字符集与字宽,用于 YOU WIN / 气泡等世界内文字
 const FONT = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789>^<v/ ";
+// 内置字体每个字符的宽度。
 const FSIZE = [
   4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 3, 4, 5, 5, 5, 5, 4,
   4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 4,

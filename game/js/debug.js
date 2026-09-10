@@ -8,13 +8,28 @@ let noclip = false,
   debugOn = false;
 let dbgMsg = "移动判定:—"; // 面板显示文本
 let dbgLog = []; // 最近 3 次报告
+/**
+ * 功能:清空移动判定调试日志和面板文本。
+ */
 function dbgReset() {
   dbgLog = [];
   dbgMsg = "移动判定:—";
 }
+/**
+ * 功能:返回指定格瓦片的中文名。
+ * @param {*} z
+ * @param {*} cx
+ * @param {*} cy
+ */
 function dbgTileName(z, cx, cy) {
   return TILE_CN[world.tile[z][cy][cx]];
 }
+/**
+ * 功能:返回格子的瓦片与物体描述,用于调试报告。
+ * @param {*} z
+ * @param {*} cx
+ * @param {*} cy
+ */
 function dbgCellDesc(z, cx, cy) {
   let o = world.obj[z][cy][cx],
     extra = "";
@@ -33,6 +48,13 @@ function dbgCellDesc(z, cx, cy) {
     extra
   );
 }
+/**
+ * 功能:返回落点被阻挡的原因文本。
+ * @param {*} z
+ * @param {*} cx
+ * @param {*} cy
+ * @param {*} ab
+ */
 function dbgBlockReason(z, cx, cy, ab) {
   const t = world.tile[z][cy][cx],
     o = world.obj[z][cy][cx];
@@ -43,6 +65,12 @@ function dbgBlockReason(z, cx, cy, ab) {
   if (o.type === O.stone) return "石块需要黄光(碎石)";
   return "未知";
 }
+/**
+ * 功能:调试开启时构造一次移动判定报告头;否则返回 null。
+ * @param {*} x
+ * @param {*} y
+ * @param {*} z
+ */
 function dbgStart(x, y, z) {
   if (!debugOn) return null;
   const dirName = x ? (x > 0 ? "→E 右" : "←W 左") : y > 0 ? "↓S 下" : "↑N 上";
@@ -86,9 +114,19 @@ function dbgStart(x, y, z) {
     ],
   };
 }
+/**
+ * 功能:向调试报告追加一行文本。
+ * @param {*} D
+ * @param {*} s
+ */
 function dbgAdd(D, s) {
   if (D) D.lines.push(s);
 }
+/**
+ * 功能:结束调试报告,写入最近 3 条日志并输出到控制台。
+ * @param {*} D
+ * @param {*} desc
+ */
 function dbgFinish(D, desc) {
   if (!D) return;
   D.lines.push("结果: " + desc);
@@ -100,15 +138,28 @@ function dbgFinish(D, desc) {
     if (window.console) console.log("[PROMESST2 移动判定]\n" + text);
   } catch (e) {}
 }
+/**
+ * 功能:调试:直接获得魔杖和 30 颗宝石。
+ */
 function cheatWand() {
   game.has_wand = true;
   game.num_gems = 30;
 }
+/**
+ * 功能:调试:切换穿墙模式。
+ */
 function cheatNoclip() {
   noclip = !noclip;
 }
 
 // 目标格分类(参数为 **列cx, 行cy**,与 world.tile[z][cy][cx] 一致;能力已内联判定)
+/**
+ * 功能:判定目标格是否可走、需要开门或需要碎石。
+ * @param {*} z
+ * @param {*} cx
+ * @param {*} cy
+ * @param {*} abilities
+ */
 function cellKind(z, cx, cy, abilities) {
   const t = world.tile[z][cy][cx],
     o = world.obj[z][cy][cx];

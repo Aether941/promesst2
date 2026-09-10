@@ -142,6 +142,10 @@ byId("dbgFeed").addEventListener("click", function () {
 }); // 调试:直接触发结局
 byId("dbgCopy").addEventListener("click", function () {
   const t = dbgMsg || "(无调试信息)";
+  /**
+   * 功能:显示复制调试信息操作的结果。
+   * @param {*} ok
+   */
   function done(ok) {
     const st = byId("dbgCopyState");
     if (!st) return;

@@ -5,13 +5,20 @@
 
 // ---------- 数据与采样 ----------
 const RAW = globalThis.PROMESST_MAP_RAW;
+// ATLAS/CELL 为精灵表总尺寸与单元格尺寸;img/imgData 为图片对象和像素缓存。
 let ATLAS = 128,
   CELL = 16,
   img = null,
   imgData = null;
 let powers = null; // 8 种能力色(取样自精灵表,供 M3 光束)
+// 精灵单元格裁剪 canvas 缓存。
 const tileCache = {};
 
+/**
+ * 功能:从精灵表像素数据中读取指定像素的 RGBA 值。
+ * @param {*} x
+ * @param {*} y
+ */
 function sample(x, y) {
   const i = (y * ATLAS + x) * 4;
   return [
@@ -21,10 +28,18 @@ function sample(x, y) {
     imgData.data[i + 3],
   ];
 }
+/**
+ * 功能:从精灵表固定像素采样 8 种能力色,写入全局 powers。
+ */
 function computePowers() {
   powers = [];
   for (let i = 0; i < 8; i++) powers.push(sample(112 + i, 96));
 }
+/**
+ * 功能:从精灵表裁出 1616 单元格并缓存为 canvas。
+ * @param {*} s
+ * @param {*} t
+ */
 function cellFrom(s, t) {
   let key = "c_" + s + "_" + t,
     c = tileCache[key];
@@ -48,6 +63,15 @@ function cellFrom(s, t) {
   return c;
 }
 // 用精灵表内置字体写文本(移植 draw_text L1691–1705)
+/**
+ * 功能:用原版内置位图字体在 canvas 上绘制文本,返回绘制结束后的 x 坐标。
+ * @param {*} g
+ * @param {*} x
+ * @param {*} y
+ * @param {*} size
+ * @param {*} text
+ * @param {*} spacing
+ */
 function drawBmpText(g, x, y, size, text, spacing) {
   spacing = spacing || 0;
   for (let i = 0; i < text.length; i++) {
@@ -60,6 +84,12 @@ function drawBmpText(g, x, y, size, text, spacing) {
   }
   return x;
 }
+/**
+ * 功能:计算内置位图字体文本的像素宽度。
+ * @param {*} size
+ * @param {*} text
+ * @param {*} spacing
+ */
 function bmpTextWidth(size, text, spacing) {
   spacing = spacing || 0;
   let x = 0;

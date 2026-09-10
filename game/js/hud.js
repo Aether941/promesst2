@@ -17,7 +17,11 @@ const hud = {
   move: "",
   lights: "",
 };
+/**
+ * 功能:刷新 HUD 状态、能力灯和调试入射光文本;通过 hud 缓存避免重复写 DOM。
+ */
 function refreshHud() {
+  // 实现:用 hud 缓存比较各字段,只在实际变化时更新 DOM;能力灯每帧根据光照更新。
   const z = game.pz,
     x = game.px,
     y = game.py;
@@ -103,6 +107,10 @@ function refreshHud() {
     }
   }
 }
+/**
+ * 功能:document.getElementById 的快捷封装。
+ * @param {*} id
+ */
 function byId(id) {
   return document.getElementById(id);
 }

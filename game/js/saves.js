@@ -5,9 +5,16 @@
 
 // ---------- 存档槽(3 槽 + 导出/导入) ----------
 let activeSlot = 1;
+/**
+ * 功能:返回存档槽 i 对应的存储键。
+ * @param {*} i
+ */
 function slotKey(i) {
   return "v1.slot" + i;
 }
+/**
+ * 功能:读取当前激活槽;若无则兼容旧的 main 键。
+ */
 function loadActiveSlot() {
   try {
     const s = parseInt(localStorage.getItem("promesst2.activeSlot") || "1", 10);
@@ -22,15 +29,27 @@ function loadActiveSlot() {
       return null;
     });
 }
+/**
+ * 功能:设置当前激活存档槽并持久化槽号。
+ * @param {*} i
+ */
 function setActiveSlot(i) {
   activeSlot = i;
   try {
     localStorage.setItem("promesst2.activeSlot", String(i));
   } catch (e) {}
 }
+/**
+ * 功能:把时间戳格式化为 YYYY-MM-DD HH:mm;0 返回 。
+ * @param {*} ms
+ */
 function fmtTime(ms) {
   if (!ms) return "—";
   const d = new Date(ms);
+  /**
+   * 功能:数字两位补零。
+   * @param {*} n
+   */
   function p(n) {
     return (n < 10 ? "0" : "") + n;
   }
@@ -46,7 +65,11 @@ function fmtTime(ms) {
     p(d.getMinutes())
   );
 }
+/**
+ * 功能:渲染 3 个存档槽及读取/保存/删除/设为当前按钮。
+ */
 function renderSlots() {
+  // 实现:异步读取三个槽位,生成状态行和读取/保存/删除按钮。
   const host = byId("slotList");
   if (!host) return;
   host.innerHTML = "";
@@ -83,6 +106,11 @@ function renderSlots() {
             (m.cleared ? " · 已通关" : "")
           : "（空）");
       row.appendChild(info);
+      /**
+       * 功能:创建槽位操作按钮并绑定回调。
+       * @param {*} label
+       * @param {*} fn
+       */
       function mk(label, fn) {
         const b = document.createElement("button");
         b.className = "btn";
@@ -128,6 +156,9 @@ function renderSlots() {
     });
   });
 }
+/**
+ * 功能:导出当前槽为 JSON 文件。
+ */
 function exportSave() {
   const data = JSON.stringify(packSave());
   const blob = new Blob([data], {type: "application/json"});
@@ -139,6 +170,10 @@ function exportSave() {
     URL.revokeObjectURL(a.href);
   }, 3000);
 }
+/**
+ * 功能:从用户选择的 JSON 文件导入存档。
+ * @param {*} file
+ */
 function importSave(file) {
   const fr = new FileReader();
   fr.onload = function () {
