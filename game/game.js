@@ -1032,7 +1032,7 @@ function render(){
 }
 
 // ---------- HUD ----------
-const hud={z:"",xy:"",room:"",face:"",steps:"",carry:"",wand:"",gems:"",undo:"",move:""};
+const hud={z:"",xy:"",room:"",face:"",steps:"",carry:"",wand:"",gems:"",undo:"",move:"",lights:""};
 function refreshHud(){
   const z=game.pz, x=game.px, y=game.py;
   const rx=(x/SX)|0, ry=(y/SY)|0;
@@ -1072,7 +1072,8 @@ function refreshHud(){
         const v=L[game.py][game.px][d];
         parts.push(["E","N","W","S"][d]+"="+(v>=0?CNAMES[v]:"—"));
       }
-      byId("dbgLights").textContent="入射光:"+parts.join(" ");
+      const lightTxt="入射光:"+parts.join(" ");
+      if(hud.lights!==lightTxt){ hud.lights=lightTxt; byId("dbgLights").textContent=lightTxt; }
       if(hud.move!==dbgMsg){ hud.move=dbgMsg; byId("dbgMove").textContent=dbgMsg; }
     }
   }
