@@ -215,20 +215,33 @@ function render() {
     }
 
   // 光束辉光(加法混合;FEATURE_LIGHT 已开)
+  // 作用:逐格读取当前层的四向入射光,取平均颜色后用 lighter 叠加到画面上,
+  //       表示该格子被光束照亮的视觉辉光。
   if (FEATURE_LIGHT) {
+    // 若当前层光照缓存失效,则先根据世界状态重新计算。
     ensureLight();
+    // lit = { pw, L, any },其中 L 是 [y][x][d] 四向光照矩阵。
     const lit = lightCache[z];
     if (lit) {
+      // x 为列,y 为行,遍历整张地图。
       for (y = 0; y < WH; y++)
         for (x = 0; x < WW; x++) {
+          // any[y][x] 表示这一格是否被任意方向的光照到。
           if (!lit.any[y][x]) continue;
+
+          // n:这一格有几个方向有光;rr/gg/bb:这些光的 RGB 累加值。
           let n = 0,
             rr = 0,
             gg = 0,
             bb = 0;
+
+          // d:0=E,1=N,2=W,3=S,一次检查四个入射方向。
           for (let d = 0; d < 4; d++) {
+            // cc = lit.L[y][x][d]:当前格从方向 d 射入的光色编号。
+            // -1 表示该方向没有光;>=0 时是 powers 数组里的颜色索引。
             const cc = lit.L[y][x][d];
             if (cc >= 0) {
+              // powers[cc] 是该颜色的 RGB 分量[red, green, blue]。
               const pc = powers[cc];
               rr += pc[0];
               gg += pc[1];
@@ -236,8 +249,12 @@ function render() {
               n++;
             }
           }
+
+          // n > 0:至少有一个方向有光,可以计算平均颜色并绘制。
           if (n) {
+            // 光方向越多越亮,但 alpha 上限为 0.42,避免过曝。
             ctx.globalAlpha = Math.min(0.42, 0.1 + 0.06 * n);
+            // 把各方向颜色平均成一个 RGB 颜色。
             ctx.fillStyle =
               "rgb(" +
               Math.round(rr / n) +
@@ -246,8 +263,11 @@ function render() {
               "," +
               Math.round(bb / n) +
               ")";
+            // lighter 是加法混合,让光叠加到底图/canvas 上,产生发光感。
             ctx.globalCompositeOperation = "lighter";
+            // K 是当前每格像素尺寸,把格子 (x,y) 映射到画布坐标。
             ctx.fillRect(x * K, y * K, K, K);
+            // 恢复正常混合和透明度,避免影响后续玩家/标记等绘制。
             ctx.globalCompositeOperation = "source-over";
             ctx.globalAlpha = 1;
           }
