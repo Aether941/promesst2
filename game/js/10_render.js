@@ -252,24 +252,24 @@ function render() {
             ctx.globalAlpha = 1;
           }
         }
-      // 通电投影器头部彩色标记
+      // 投影器头部彩色标记:有电时亮色叠加,没电时也保留暗色,便于辨认颜色
       for (y = 0; y < WH; y++)
         for (x = 0; x < WW; x++) {
           const o2 = world.obj[z][y][x];
-          if (o2.type === O.projector && lit.pw[(y / SY) | 0][(x / SX) | 0]) {
-            const pc2 = powers[o2.color];
-            ctx.globalAlpha = 0.55;
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = "rgb(" + pc2[0] + "," + pc2[1] + "," + pc2[2] + ")";
-            ctx.fillRect(
-              x * K + K * 0.28,
-              y * K + K * 0.28,
-              K * 0.44,
-              K * 0.44,
-            );
-            ctx.globalCompositeOperation = "source-over";
-            ctx.globalAlpha = 1;
-          }
+          if (o2.type !== O.projector) continue;
+          const powered = !!lit.pw[(y / SY) | 0][(x / SX) | 0];
+          const pc2 = powers[o2.color];
+          ctx.globalAlpha = powered ? 0.55 : 0.32;
+          ctx.globalCompositeOperation = powered ? "lighter" : "source-over";
+          ctx.fillStyle = "rgb(" + pc2[0] + "," + pc2[1] + "," + pc2[2] + ")";
+          ctx.fillRect(
+            x * K + K * 0.28,
+            y * K + K * 0.28,
+            K * 0.44,
+            K * 0.44,
+          );
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
         }
     }
   }
