@@ -280,15 +280,29 @@ function render() {
           const powered = !!lit.pw[(y / SY) | 0][(x / SX) | 0];
           const pc2 = powers[o2.color];
           if (powered) {
+            // 灯自身格子的半格辉光:从中心出发,向发射方向铺半格。
+            const dx = XD[o2.dir];
+            const dy = YD[o2.dir];
+            const glowX = x * K + (dx > 0 ? K * 0.5 : 0);
+            const glowY = y * K + (dy > 0 ? K * 0.5 : 0);
+            const glowW = dx ? K * 0.5 : K;
+            const glowH = dy ? K * 0.5 : K;
+            // 与单方向光束辉光的 alpha 保持一致。
+            ctx.globalAlpha = 0.16;
+            ctx.globalCompositeOperation = "lighter";
+            ctx.fillStyle =
+              "rgb(" + pc2[0] + "," + pc2[1] + "," + pc2[2] + ")";
+            ctx.fillRect(glowX, glowY, glowW, glowH);
+
             // 通电:原版亮色四角星标记
             ctx.globalAlpha = 0.6;
             ctx.globalCompositeOperation = "lighter";
             ctx.drawImage(
               tintedCell(5, 2, pc2),
-              x * K ,
-              y * K ,
-              K ,
-              K ,
+              x * K,
+              y * K,
+              K,
+              K,
             );
           } else {
             // 未通电:保留暗色中心色块
