@@ -82,18 +82,22 @@ window.addEventListener("blur", function () {
 // 控件
 byId("btnFit").addEventListener("click", function () {
   autoFit = true;
+  saveViewPrefs();
   resizeCanvas();
 });
 byId("btnZo").addEventListener("click", function () {
   autoFit = false;
   zoomK = Math.max(1, zoomK - 1);
+  saveViewPrefs();
   resizeCanvas();
 });
 byId("btnZi").addEventListener("click", function () {
   autoFit = false;
   zoomK = Math.min(6, zoomK + 1);
+  saveViewPrefs();
   resizeCanvas();
 });
+byId("btnResetZoom").addEventListener("click", resetZoom);
 byId("btnUndo").addEventListener("click", function () {
   if (mainMode === "game") {
     undo();

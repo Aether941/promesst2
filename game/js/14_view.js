@@ -6,6 +6,43 @@
 // ---------- 视野:适配(吃满可视区)/ 手动缩放 / 跟随 ----------
 const stage = byId("stage");
 let cssScale = 1; // 画布 CSS 显示尺寸 / 后备缓冲尺寸(适配模式下可能 <1,避免模糊)
+const ZOOM_MIN = 1,
+  ZOOM_MAX = 6,
+  ZOOM_DEFAULT = 2;
+
+/**
+ * 功能:从 localStorage 读取上次保存的缩放模式与倍率。
+ */
+function loadViewPrefs() {
+  try {
+    const savedZoom = parseInt(localStorage.getItem("promesst2.zoomK") || "", 10);
+    if (savedZoom >= ZOOM_MIN && savedZoom <= ZOOM_MAX) zoomK = savedZoom;
+    const savedFit = localStorage.getItem("promesst2.autoFit");
+    if (savedFit === "0") autoFit = false;
+    else if (savedFit === "1") autoFit = true;
+  } catch (e) {}
+}
+
+/**
+ * 功能:保存当前缩放模式与倍率到 localStorage。
+ */
+function saveViewPrefs() {
+  try {
+    localStorage.setItem("promesst2.zoomK", String(zoomK));
+    localStorage.setItem("promesst2.autoFit", autoFit ? "1" : "0");
+  } catch (e) {}
+}
+
+/**
+ * 功能:重置为默认手动缩放倍率并刷新画面。
+ */
+function resetZoom() {
+  autoFit = false;
+  zoomK = ZOOM_DEFAULT;
+  saveViewPrefs();
+  resizeCanvas();
+  centerPlayer();
+}
 /**
  * 功能:根据适配/手动缩放模式调整 canvas 后备缓冲和 CSS 尺寸。
  */
@@ -56,10 +93,14 @@ function onViewChanged(center) {
   if (center) resizeCanvas();
 }
 
+loadViewPrefs();
+
 /* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
 globalThis.resizeCanvas = resizeCanvas;
 globalThis.centerPlayer = centerPlayer;
 globalThis.onViewChanged = onViewChanged;
+globalThis.saveViewPrefs = saveViewPrefs;
+globalThis.resetZoom = resetZoom;
 globalThis.stage = stage;
 Object.defineProperty(globalThis, "cssScale", {
   configurable: true,
