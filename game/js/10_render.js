@@ -262,11 +262,12 @@ function render() {
           ctx.globalAlpha = powered ? 0.55 : 0.32;
           ctx.globalCompositeOperation = powered ? "lighter" : "source-over";
           ctx.fillStyle = "rgb(" + pc2[0] + "," + pc2[1] + "," + pc2[2] + ")";
+          // 灯芯色块
           ctx.fillRect(
-            x * K + K * 0.28,
-            y * K + K * 0.28,
-            K * 0.44,
-            K * 0.44,
+            x * K + K * 0.37,
+            y * K + K * 0.37,
+            K * 0.19,
+            K * 0.19,
           );
           ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 1;

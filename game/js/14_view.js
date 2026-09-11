@@ -7,8 +7,7 @@
 const stage = byId("stage");
 let cssScale = 1; // 画布 CSS 显示尺寸 / 后备缓冲尺寸(适配模式下可能 <1,避免模糊)
 const ZOOM_MIN = 1,
-  ZOOM_MAX = 6,
-  ZOOM_DEFAULT = 2;
+  ZOOM_MAX = 6;
 
 /**
  * 功能:从 localStorage 读取上次保存的缩放模式与倍率。
@@ -34,14 +33,12 @@ function saveViewPrefs() {
 }
 
 /**
- * 功能:重置为默认手动缩放倍率并刷新画面。
+ * 功能:重置为适配模式,让画布自动铺满可视区。
  */
 function resetZoom() {
-  autoFit = false;
-  zoomK = ZOOM_DEFAULT;
-  saveViewPrefs();
+  autoFit = true;
   resizeCanvas();
-  centerPlayer();
+  saveViewPrefs();
 }
 /**
  * 功能:根据适配/手动缩放模式调整 canvas 后备缓冲和 CSS 尺寸。
