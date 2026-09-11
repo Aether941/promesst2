@@ -6,6 +6,10 @@
 // ---------- 调试:移动判定报告(覆盖全部颜色,最近 3 次) ----------
 let noclip = false,
   debugOn = false;
+let skipLogoMenu = false;
+try {
+  skipLogoMenu = localStorage.getItem("promesst2.skipLogoMenu") === "1";
+} catch (e) {}
 let dbgMsg = "移动判定:—"; // 面板显示文本
 let dbgLog = []; // 最近 3 次报告
 /**
@@ -200,4 +204,9 @@ Object.defineProperty(globalThis, "dbgLog", {
   configurable: true,
   get() { return dbgLog; },
   set(value) { dbgLog = value; },
+});
+Object.defineProperty(globalThis, "skipLogoMenu", {
+  configurable: true,
+  get() { return skipLogoMenu; },
+  set(value) { skipLogoMenu = value; },
 });

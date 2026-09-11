@@ -152,18 +152,25 @@ Object.defineProperty(globalThis, "lastRender", {
             return null;
           });
         p.then(function (save) {
+          const skipBoot = !!skipLogoMenu;
           if (save && save.g) {
             restoreSave(save);
             gameStarted = true;
           } else {
             reset();
-            gameStarted = false;
+            gameStarted = skipBoot;
+            if (skipBoot) scheduleSave();
           }
           resizeCanvas();
           render();
           buildMenu();
-          logoTime = 1500;
-          setMode("logo");
+          if (skipBoot) {
+            gameStarted = true;
+            setMode("game");
+          } else {
+            logoTime = 1500;
+            setMode("logo");
+          }
           requestAnimationFrame(loop);
         });
       } catch (ex) {

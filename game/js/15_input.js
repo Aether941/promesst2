@@ -134,6 +134,13 @@ byId("ckDbg").addEventListener("change", function (e) {
   debugOn = e.target.checked;
   byId("dbgrow").style.display = debugOn ? "block" : "none";
 });
+byId("ckSkipBoot").checked = !!skipLogoMenu;
+byId("ckSkipBoot").addEventListener("change", function (e) {
+  skipLogoMenu = e.target.checked;
+  try {
+    localStorage.setItem("promesst2.skipLogoMenu", skipLogoMenu ? "1" : "0");
+  } catch (e) {}
+});
 byId("dbgWand").addEventListener("click", function () {
   cheatWand();
 });
