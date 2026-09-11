@@ -13,6 +13,7 @@ let ATLAS = 128,
 let powers = null; // 8 种能力色(取样自精灵表,供 M3 光束)
 // 精灵单元格裁剪 canvas 缓存。
 const tileCache = {};
+const tintCache = {};
 
 /**
  * 功能:从精灵表像素数据中读取指定像素的 RGBA 值。
@@ -62,6 +63,29 @@ function cellFrom(s, t) {
   }
   return c;
 }
+/**
+ * 功能:返回按指定颜色着色的精灵单元格 canvas,用于投影器中心星形标记。
+ * @param {*} s
+ * @param {*} t
+ * @param {*} color
+ */
+function tintedCell(s, t, color) {
+  const key = s + "_" + t + "_" + color[0] + "_" + color[1] + "_" + color[2];
+  let c = tintCache[key];
+  if (!c) {
+    c = document.createElement("canvas");
+    c.width = CELL;
+    c.height = CELL;
+    const g = c.getContext("2d");
+    g.drawImage(cellFrom(s, t), 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = "rgb(" + color[0] + "," + color[1] + "," + color[2] + ")";
+    g.fillRect(0, 0, CELL, CELL);
+    tintCache[key] = c;
+  }
+  return c;
+}
+
 // 用精灵表内置字体写文本(移植 draw_text L1691–1705)
 /**
  * 功能:用原版内置位图字体在 canvas 上绘制文本,返回绘制结束后的 x 坐标。
@@ -104,6 +128,7 @@ function bmpTextWidth(size, text, spacing) {
 globalThis.sample = sample;
 globalThis.computePowers = computePowers;
 globalThis.cellFrom = cellFrom;
+globalThis.tintedCell = tintedCell;
 globalThis.drawBmpText = drawBmpText;
 globalThis.bmpTextWidth = bmpTextWidth;
 globalThis.RAW = RAW;

@@ -259,16 +259,29 @@ function render() {
           if (o2.type !== O.projector) continue;
           const powered = !!lit.pw[(y / SY) | 0][(x / SX) | 0];
           const pc2 = powers[o2.color];
-          ctx.globalAlpha = powered ? 0.55 : 0.32;
-          ctx.globalCompositeOperation = powered ? "lighter" : "source-over";
-          ctx.fillStyle = "rgb(" + pc2[0] + "," + pc2[1] + "," + pc2[2] + ")";
-          // 灯芯色块
-          ctx.fillRect(
-            x * K + K * 0.37,
-            y * K + K * 0.37,
-            K * 0.19,
-            K * 0.19,
-          );
+          if (powered) {
+            // 通电:原版亮色四角星标记
+            ctx.globalAlpha = 0.6;
+            ctx.globalCompositeOperation = "lighter";
+            ctx.drawImage(
+              tintedCell(5, 2, pc2),
+              x * K ,
+              y * K ,
+              K ,
+              K ,
+            );
+          } else {
+            // 未通电:保留暗色中心色块
+            ctx.globalAlpha = 0.6;
+            ctx.globalCompositeOperation = "source-over";
+            ctx.drawImage(
+              tintedCell(5, 1, pc2),
+                x * K + K * 0.38,
+                y * K + K * 0.38,
+                K * 0.18,
+                K * 0.18,
+            );
+          }
           ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 1;
         }
