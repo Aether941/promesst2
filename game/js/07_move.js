@@ -49,8 +49,6 @@ function tryMove(x, y) {
     return ret("move", "调试穿墙:直接移动到 (" + game.px + "," + game.py + ")");
   }
 
-  dbgAdd(D, "当前格 " + dbgCellDesc(z, game.px, game.py));
-
   // 站在墙内:无绿光禁止任何移动(只能撤销),否则绿光穿墙后可能“卡”在墙里还能走出来
   if (world.tile[z][game.py][game.px] === T.wall) {
     if (!abilities[POW_walls]) return ret(false, "被挡:站在墙内且无绿光(原版 L787–792,只能撤销)");
@@ -99,14 +97,14 @@ function tryMove(x, y) {
     }
     dbgAdd(
       D,
-      "远行判定(紫) 起点紫=" +
+      "【紫光】起点=" +
         (startV ? "是" : "否") +
-        " 前方连续紫=" +
+        " 连续=" +
         cnt +
-        "(墙格" +
+        " 墙格=" +
         walls +
-        ") 落点=" +
-        (tt ? "(" + tt.x + "," + tt.y + ")" : "无(按原版退化为普通移动)"),
+        " 落点=" +
+        (tt ? "(" + tt.x + "," + tt.y + ")" : "无"),
     );
   }
 
@@ -116,8 +114,8 @@ function tryMove(x, y) {
     if (abilities[POW_double]) {
       stepN = 1 << abilities[POW_double];
       setUsed(POW_double);
+      dbgAdd(D, "【橙光】" + abilities[POW_double] + " 步长=" + stepN);
     }
-    dbgAdd(D, "双步判定(橙) 橙光×" + abilities[POW_double] + " → 本次步长 " + stepN);
     let k;
     for (k = 1; k <= stepN; k++) {
       const cx = wrapX(game.px + x * k),
@@ -171,9 +169,9 @@ function tryMove(x, y) {
       }
       if (world.tile[z][cy][cx] === T.wall) {
         setUsed(POW_walls);
-        dbgAdd(D, "落点 " + dbgCellDesc(z, cx, cy) + " → 墙,用绿光穿墙(消耗绿光)");
+        dbgAdd(D, "【落点】" + dbgCellDesc(z, cx, cy) + " → 墙,用绿光穿墙(消耗绿光)");
       } else {
-        dbgAdd(D, "落点 " + dbgCellDesc(z, cx, cy) + " → 判定=" + kind);
+        dbgAdd(D, "【落点】" + dbgCellDesc(z, cx, cy) + " → 判定=" + kind);
       }
       gx = cx;
       gy = cy;

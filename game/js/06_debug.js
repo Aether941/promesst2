@@ -81,6 +81,21 @@ function dbgBlockReason(z, cx, cy, ab) {
   return "未知";
 }
 /**
+ * 功能:返回当前玩家格四向入射光文本。
+ */
+function dbgPlayerLightText() {
+  if (!FEATURE_LIGHT) return "(无光照)";
+  ensureLight();
+  const L = lightCache[game.pz];
+  if (!L) return "(无光照数据)";
+  const p = [];
+  for (let i = 0; i < 4; i++) {
+    const v = L.L[game.py][game.px][i];
+    p.push(["E", "N", "W", "S"][i] + "=" + (v >= 0 ? CNAMES[v] : "-"));
+  }
+  return p.join(" ");
+}
+/**
  * 功能:调试开启时构造一次移动判定报告头;否则返回 null。
  * @param {*} x
  * @param {*} y
@@ -91,38 +106,24 @@ function dbgStart(x, y, z) {
   const dirName = x ? (x > 0 ? "→E 右" : "←W 左") : y > 0 ? "↓S 下" : "↑N 上";
   const ab = [0, 0, 0, 0, 0, 0, 0, 0];
   getAbilities(ab);
-  let L = FEATURE_LIGHT ? lightCache[z] : null,
-    lightStr = "(无光照数据)";
-  if (L) {
-    const p = [];
-    for (let i = 0; i < 4; i++) {
-      const v = L.L[game.py][game.px][i];
-      p.push(["E", "N", "W", "S"][i] + "=" + (v >= 0 ? CNAMES[v] : "—"));
-    }
-    lightStr = p.join(" ");
-  }
   return {
     lines: [
-      "── 按键 " +
-        dirName +
-        " | 从 (" +
-        game.px +
-        "," +
-        game.py +
-        ") Z" +
+      "【输入】" + dirName,
+      "【起点】" +
+        dbgCellDesc(z, game.px, game.py) +
+        " Z" +
         z +
         " 朝向=" +
         DIRNAME[game.pdir],
-      "入射光(玩家格四向) " + lightStr,
-      "能力计数 红(开门)" +
+      "【能力】红" +
         ab[0] +
-        " 绿(穿墙)" +
+        " 绿" +
         ab[1] +
-        " 黄(碎石)" +
+        " 黄" +
         ab[4] +
-        " 橙(双步)" +
+        " 橙" +
         ab[3] +
-        " 紫(远行)" +
+        " 紫" +
         ab[5] +
         " flag=0x" +
         game.ability_flag.toString(16),
@@ -144,7 +145,8 @@ function dbgAdd(D, s) {
  */
 function dbgFinish(D, desc) {
   if (!D) return;
-  D.lines.push("结果: " + desc);
+  D.lines.push("【当前光】" + dbgPlayerLightText());
+  D.lines.push("【结果】" + desc);
   const text = D.lines.join("\n");
   dbgLog.push(text);
   if (dbgLog.length > DBG_LOG_MAX) dbgLog.shift();
@@ -152,7 +154,7 @@ function dbgFinish(D, desc) {
   dbgMsg = dbgLog[dbgLogCursor];
   updateDbgNavUI();
   try {
-    if (window.console) console.log("[PROMESST2 移动判定]\n" + text);
+    if (window.console) console.log("【PROMESST2 移动判定】\n" + text);
   } catch (e) {}
 }
 /**
