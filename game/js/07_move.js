@@ -17,6 +17,7 @@ function tryMove(x, y) {
   getAbilities(abilities);
   const proposed_pdir = x ? (x < 0 ? DIR_W : DIR_E) : y < 0 ? DIR_N : DIR_S;
   let used = game.ability_flag;
+  let usedWall = false;
   /**
    * 功能:把能力位 b 标记为本次已使用。
    * @param {*} b
@@ -54,7 +55,7 @@ function tryMove(x, y) {
   if (world.tile[z][game.py][game.px] === T.wall) {
     if (!abilities[POW_walls]) return ret(false, "被挡:站在墙内且无绿光(原版 L787–792,只能撤销)");
     setUsed(POW_walls);
-    dbgAdd(D, "站在墙内:有绿光 → 允许移动(消耗绿光)");
+    usedWall = true;
   }
 
   const L = FEATURE_LIGHT ? lightCache[z] : null;
@@ -84,62 +85,20 @@ function tryMove(x, y) {
     setUsed(POW_travel);
     travel = true;
   }
-  if (D && L) {
-    const startV = litViolet(game.py, game.px);
-    let cnt = 0,
-      walls = 0,
-      cxa = wrapX(game.px + x),
-      cya = wrapY(game.py + y); // 必须环绕(否则边缘会越界)
-    while (cnt < WW * WH && litViolet(cya, cxa)) {
-      if (world.tile[z][cya][cxa] === T.wall) walls++;
-      cnt++;
-      cxa = wrapX(cxa + x);
-      cya = wrapY(cya + y);
-    }
-    dbgAdd(
-      D,
-      "【紫光】起点=" +
-        (startV ? "是" : "否") +
-        " 连续=" +
-        cnt +
-        " 墙格=" +
-        walls,
-    );
-  }
-
   let stepN = 1;
   if (!travel) {
     // 橙光双步:终点按原版判定;但路径中途若遇门(红光)/石块(黄光)则停下开门/砸碎
     if (abilities[POW_double]) {
       stepN = 1 << abilities[POW_double];
       setUsed(POW_double);
-      dbgAdd(D, "【橙光】" + abilities[POW_double] + " 步长=" + stepN);
     }
     let k;
     for (k = 1; k <= stepN; k++) {
       const cx = wrapX(game.px + x * k),
         cy = wrapY(game.py + y * k);
       const isMid = k < stepN;
-      const tT = world.tile[z][cy][cx],
-        oT = world.obj[z][cy][cx];
       if (isMid) {
-        // 原版 main.c L772–801:橙光双步只判定“终点”那一格;中途格一律越过
-        // (不开门、不碎石、不看墙/投影器/反射镜)——因此无红光也能“跳过”门。
-        let midNote = "";
-        if (tT === T.door) midNote = "(门:越过,不开)";
-        else if (oT.type === O.stone) midNote = "(石块:越过,不碎)";
-        else if (tT === T.wall) midNote = "(墙:越过)";
-        else if (oT.type === O.projector) midNote = "(投影器:越过)";
-        else if (oT.type === O.refl) midNote = "(反射镜:越过)";
-        dbgAdd(
-          D,
-          "双步第" +
-            k +
-            "格(中途) " +
-            dbgCellDesc(z, cx, cy) +
-            " → 原版只判终点,直接越过" +
-            midNote,
-        );
+        // 橙光双步只判定终点;中途格直接越过
         continue;
       }
       const kind = cellKind(z, cx, cy, abilities); // 终点判定(照原版;cellKind 参数为 列,行)
@@ -170,7 +129,7 @@ function tryMove(x, y) {
       }
       if (world.tile[z][cy][cx] === T.wall) {
         setUsed(POW_walls);
-        dbgAdd(D, "【穿墙】使用绿光通过墙体");
+        usedWall = true;
       }
       gx = cx;
       gy = cy;
@@ -198,6 +157,10 @@ function tryMove(x, y) {
       pauseInput();
       if (D) D.landing = "(" + gx + "," + gy + ") Z" + game.pz;
       return ret("destroy", "碎石 清空,人不动");
+    }
+    if (world.tile[z][gy][gx] === T.wall) {
+      setUsed(POW_walls);
+      usedWall = true;
     }
   }
 
@@ -232,6 +195,7 @@ function tryMove(x, y) {
     "move",
     "移动成功" +
       (travel ? " [紫光远行]" : stepN > 1 ? " [橙光双步×" + stepN + "]" : "") +
+      (usedWall ? " [绿光穿墙]" : "") +
       (nz !== z ? " [楼梯切层]" : "") +
       (got_wand ? " [拾取魔杖]" : ""),
   );

@@ -96,6 +96,27 @@ function dbgPlayerLightText() {
   return p.join(" ");
 }
 /**
+ * 功能:返回当前玩家格能力计数文本。
+ */
+function dbgPlayerAbilityText() {
+  const ab = [0, 0, 0, 0, 0, 0, 0, 0];
+  getAbilities(ab);
+  return (
+    "【能力】红" +
+    ab[0] +
+    " 绿" +
+    ab[1] +
+    " 黄" +
+    ab[4] +
+    " 橙" +
+    ab[3] +
+    " 紫" +
+    ab[5] +
+    " flag=0x" +
+    game.ability_flag.toString(16)
+  );
+}
+/**
  * 功能:调试开启时构造一次移动判定报告头;否则返回 null。
  * @param {*} x
  * @param {*} y
@@ -104,8 +125,6 @@ function dbgPlayerLightText() {
 function dbgStart(x, y, z) {
   if (!debugOn) return null;
   const dirName = x ? (x > 0 ? "→E 右" : "←W 左") : y > 0 ? "↓S 下" : "↑N 上";
-  const ab = [0, 0, 0, 0, 0, 0, 0, 0];
-  getAbilities(ab);
   return {
     lines: [
       "【输入】" + dirName,
@@ -115,29 +134,9 @@ function dbgStart(x, y, z) {
         z +
         " 朝向=" +
         DIRNAME[game.pdir],
-      "【能力】红" +
-        ab[0] +
-        " 绿" +
-        ab[1] +
-        " 黄" +
-        ab[4] +
-        " 橙" +
-        ab[3] +
-        " 紫" +
-        ab[5] +
-        " flag=0x" +
-        game.ability_flag.toString(16),
     ],
     landing: "无",
   };
-}
-/**
- * 功能:向调试报告追加一行文本。
- * @param {*} D
- * @param {*} s
- */
-function dbgAdd(D, s) {
-  if (D) D.lines.push(s);
 }
 /**
  * 功能:结束调试报告,保存最近 5 条日志并输出当前选中的一条。
@@ -148,6 +147,7 @@ function dbgFinish(D, desc) {
   if (!D) return;
   D.lines.push("【落点】" + D.landing);
   D.lines.push("【当前光】" + dbgPlayerLightText());
+  D.lines.push(dbgPlayerAbilityText());
   D.lines.push("【结果】" + desc);
   const text = D.lines.join("\n");
   dbgLog.push(text);
@@ -282,7 +282,6 @@ globalThis.dbgTileName = dbgTileName;
 globalThis.dbgCellDesc = dbgCellDesc;
 globalThis.dbgBlockReason = dbgBlockReason;
 globalThis.dbgStart = dbgStart;
-globalThis.dbgAdd = dbgAdd;
 globalThis.dbgFinish = dbgFinish;
 globalThis.dbgShowPrev = dbgShowPrev;
 globalThis.dbgShowNext = dbgShowNext;
