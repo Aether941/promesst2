@@ -23,26 +23,26 @@
         <section class="panel" id="bar">
           <h2>状态</h2>
           <div class="rows">
-            <span class="badge">层 <b id="bz">Z0</b></span>
-            <span class="badge">格 <b id="bxy">(?, ?)</b></span>
-            <span class="badge">房间 <b id="broom">(?, ?)</b></span>
-            <span class="badge">朝向 <b id="bfacing">—</b></span>
-            <span class="badge">宝石 <b id="bcarry">0</b></span>
-            <span class="badge">已喂 <b id="bgems">—</b></span>
-            <span class="badge">魔杖 <b id="bwand">无</b></span>
-            <span class="badge">可撤销 <b id="bund">0</b></span>
-            <span class="badge">步数 <b id="bsteps">0</b></span>
+            <span class="badge">楼层<b id="bz">Z0</b></span>
+            <span class="badge">坐标<b id="bxy">(?, ?)</b></span>
+            <span class="badge">房间<b id="broom">(?, ?)</b></span>
+            <span class="badge">朝向<b id="bfacing">—</b></span>
+            <span class="badge">宝石<b id="bcarry">00</b></span>
+            <span class="badge">投喂<b id="bgems">00</b></span>
+            <span class="badge">魔杖<b id="bwand">无</b></span>
+            <span class="badge">撤销<b id="bund">0</b></span>
+            <span class="badge">步数<b id="bsteps">0</b></span>
           </div>
         </section>
 
         <section class="panel">
-          <h2>能力(照到=亮 / 用过=暗)</h2>
+          <h2>能力</h2>
           <div class="rows">
             <span class="lamps" id="lamps">
-              <span class="lamp c0" data-c="0">红</span
-              ><span class="lamp c1" data-c="1">绿</span>
-              <span class="lamp c4" data-c="4">黄</span
-              ><span class="lamp c3" data-c="3">橙</span>
+              <span class="lamp c0" data-c="0">红</span>
+              <span class="lamp c1" data-c="1">绿</span>
+              <span class="lamp c4" data-c="4">黄</span>
+              <span class="lamp c3" data-c="3">橙</span>
               <span class="lamp c5" data-c="5">紫</span>
             </span>
           </div>
@@ -53,7 +53,7 @@
           <div class="rows">
             <button class="btn" id="btnUndo">撤销(Z)</button>
             <button class="btn" id="btnMenu">菜单(Esc)</button>
-            <button class="btn" id="btnView">视角:大地图</button>
+            <button class="btn" id="btnView">全图</button>
           </div>
           <div class="rows" style="margin-top: 7px">
             <label class="chk"><input type="checkbox" id="ckGrid" />网格</label>
@@ -64,13 +64,13 @@
         <section class="panel" id="dbgrow" style="display: none">
           <h2>调试(仅验证玩法)</h2>
           <div class="rows">
-            <button class="btn" id="dbgWand">给魔杖(+30 宝石)</button>
-            <button class="btn" id="dbgFeed">直接喂满 30(看结局)</button>
-            <button class="btn" id="dbgNoclip">穿墙开关</button>
-            <label class="chk"><input type="checkbox" id="ckSkipBoot" />跳过 Logo/菜单</label>
-            <label class="chk"><input type="checkbox" id="ckLightFlicker" checked />光闪烁</label>
-            <label class="chk"
-              >帧率
+            <button class="btn" id="dbgWand">30宝石</button>
+            <button class="btn" id="dbgFeed">投喂30宝石 (看结局)</button>
+            <button class="btn" id="dbgNoclip">穿墙</button>
+            <label class="chk">跳过开场动画<input type="checkbox" id="ckSkipBoot" /> </label>
+            <label class="chk">光束闪烁<input type="checkbox" id="ckLightFlicker" checked /> </label>
+            <label class="chk">
+              帧率
               <select id="selFps">
                 <option value="30">30 FPS</option>
                 <option value="60" selected>60 FPS</option>
@@ -96,10 +96,8 @@
 
         <section class="panel" id="info">
           <h2>按键与目标</h2>
-          <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 · <kbd>X</kbd> 射击 ·
-          <kbd>V</kbd> 宝石拾/放<br />
-          <kbd>Z</kbd> 撤销上一步 · <kbd>#</kbd> 楼梯切层 ·
-          <kbd>Esc</kbd> 菜单<br />
+          <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 · <kbd>X</kbd> 射击 · <kbd>V</kbd> 宝石拾/放<br />
+          <kbd>Z</kbd> 撤销上一步 · <kbd>#</kbd> 楼梯切层 · <kbd>Esc</kbd> 菜单<br />
           出生点 Z0 (12,20);Rover 每 0.63s 自主移动,吃满 30 颗宝石通关。
         </section>
       </aside>
@@ -130,8 +128,8 @@
         <div class="name">DAVID GOW</div>
         <div class="role">PLAYTEST BY</div>
         <div class="name">
-          CASEY MURATORI &nbsp; ZACH SAMUELS<br />JONATHAN BLOW &nbsp; ERIN
-          ROBINSON<br />ALEX MARTIN &nbsp; DAVE MOORE
+          CASEY MURATORI &nbsp; ZACH SAMUELS<br />JONATHAN BLOW &nbsp; ERIN ROBINSON<br />ALEX
+          MARTIN &nbsp; DAVE MOORE
         </div>
         <div class="role" style="margin-top: 14px">
           网页版移植 · 规则照抄 main.c(Sean Barrett, 2014)
@@ -145,18 +143,18 @@
       <div class="slots" id="slotList"></div>
       <div class="row">
         <button class="btn" id="btnExport">导出当前槽 JSON</button>
-        <label class="btn" style="display: inline-block"
-          >导入 JSON<input
+        <label class="btn" style="display: inline-block">
+          导入 JSON
+          <input
             type="file"
             id="fileImport"
             accept=".json,application/json"
             style="display: none"
-        /></label>
+          />
+        </label>
         <button class="btn" id="btnSlotsBack">返回(Esc)</button>
       </div>
-      <div class="sub" id="slotHint">
-        自动存档写入“当前槽”;点“设为当前”后自动存档会写入该槽。
-      </div>
+      <div class="sub" id="slotHint">自动存档写入“当前槽”;点“设为当前”后自动存档会写入该槽。</div>
     </div>
 
     <div class="screen" id="scrResult">
