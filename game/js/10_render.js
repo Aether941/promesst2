@@ -214,65 +214,57 @@ function render() {
       if (oc) ctx.drawImage(oc, x * K, y * K, K, K);
     }
 
-  // 光束辉光(加法混合;FEATURE_LIGHT 已开)
-  // 作用:逐格读取当前层的四向入射光,取平均颜色后用 lighter 叠加到画面上,
-  //       表示该格子被光束照亮的视觉辉光。
+  // 光束辉光:直接使用原版精灵表贴图,不再用 fillRect 手画。
+  //   半格贴图:(0,5)右 / (1,5)上 / (2,5)左 / (3,5)下
+  //   满格贴图:(4,5) 和 (5,5),原版按方向的奇偶选择 4+(d&1)
   if (FEATURE_LIGHT) {
-    // 若当前层光照缓存失效,则先根据世界状态重新计算。
     ensureLight();
-    // lit = { pw, L, any },其中 L 是 [y][x][d] 四向光照矩阵。
     const lit = lightCache[z];
     if (lit) {
-      // x 为列,y 为行,遍历整张地图。
+      // 1) 满格光束:每个有光的入射方向画一个满格贴图。
       for (y = 0; y < WH; y++)
         for (x = 0; x < WW; x++) {
-          // any[y][x] 表示这一格是否被任意方向的光照到。
           if (!lit.any[y][x]) continue;
-
-          // n:这一格有几个方向有光;rr/gg/bb:这些光的 RGB 累加值。
-          let n = 0,
-            rr = 0,
-            gg = 0,
-            bb = 0;
-
-          // d:0=E,1=N,2=W,3=S,一次检查四个入射方向。
+          let n = 0;
+          for (let d = 0; d < 4; d++) if (lit.L[y][x][d] >= 0) n++;
+          if (!n) continue;
+          const alpha = Math.min(0.42, 0.1 + 0.06 * n) / n;
           for (let d = 0; d < 4; d++) {
-            // cc = lit.L[y][x][d]:当前格从方向 d 射入的光色编号。
-            // -1 表示该方向没有光;>=0 时是 powers 数组里的颜色索引。
             const cc = lit.L[y][x][d];
-            if (cc >= 0) {
-              // powers[cc] 是该颜色的 RGB 分量[red, green, blue]。
-              const pc = powers[cc];
-              rr += pc[0];
-              gg += pc[1];
-              bb += pc[2];
-              n++;
-            }
-          }
-
-          // n > 0:至少有一个方向有光,可以计算平均颜色并绘制。
-          if (n) {
-            // 光方向越多越亮,但 alpha 上限为 0.42,避免过曝。
-            ctx.globalAlpha = Math.min(0.42, 0.1 + 0.06 * n);
-            // 把各方向颜色平均成一个 RGB 颜色。
-            ctx.fillStyle =
-              "rgb(" +
-              Math.round(rr / n) +
-              "," +
-              Math.round(gg / n) +
-              "," +
-              Math.round(bb / n) +
-              ")";
-            // lighter 是加法混合,让光叠加到底图/canvas 上,产生发光感。
+            if (cc < 0) continue;
+            ctx.globalAlpha = alpha;
             ctx.globalCompositeOperation = "lighter";
-            // K 是当前每格像素尺寸,把格子 (x,y) 映射到画布坐标。
-            ctx.fillRect(x * K, y * K, K, K);
-            // 恢复正常混合和透明度,避免影响后续玩家/标记等绘制。
+            ctx.drawImage(
+              tintedCell(4 + (d & 1), 5, powers[cc]),
+              x * K,
+              y * K,
+              K,
+              K,
+            );
             ctx.globalCompositeOperation = "source-over";
             ctx.globalAlpha = 1;
           }
         }
-      // 投影器头部彩色标记:有电时亮色叠加,没电时也保留暗色,便于辨认颜色
+
+      // 2) 光束末端半格:只处理被反向朝向自己的灯挡住的情况。
+      if (lit.end) {
+        for (let i = 0; i < lit.end.length; i++) {
+          const e = lit.end[i];
+          ctx.globalAlpha = 0.16;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.drawImage(
+            tintedCell(e.side, 5, powers[e.color]),
+            e.x * K,
+            e.y * K,
+            K,
+            K,
+          );
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // 3) 投影器自身:通电时画方向半格 + 四角星;未通电时画暗色中心块。
       for (y = 0; y < WH; y++)
         for (x = 0; x < WW; x++) {
           const o2 = world.obj[z][y][x];
@@ -280,48 +272,25 @@ function render() {
           const powered = !!lit.pw[(y / SY) | 0][(x / SX) | 0];
           const pc2 = powers[o2.color];
           if (powered) {
-            // 灯自身格子的半格辉光:从中心出发,向发射方向铺半格。
-            const dx = XD[o2.dir];
-            const dy = YD[o2.dir];
-            const glowX = x * K + (dx > 0 ? K * 0.5 : 0);
-            const glowY = y * K + (dy > 0 ? K * 0.5 : 0);
-            const glowW = dx ? K * 0.5 : K;
-            const glowH = dy ? K * 0.5 : K;
-            // 与单方向光束辉光的 alpha 保持一致。
+            // 自己格子的半格贴图:o2.dir 正好对应 (0,5)~(3,5)。
             ctx.globalAlpha = 0.16;
             ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle =
-              "rgb(" + pc2[0] + "," + pc2[1] + "," + pc2[2] + ")";
-            ctx.fillRect(glowX, glowY, glowW, glowH);
-
-            // 通电:原版亮色四角星标记
+            ctx.drawImage(tintedCell(o2.dir, 5, pc2), x * K, y * K, K, K);
+            // 亮色四角星。
             ctx.globalAlpha = 0.6;
             ctx.globalCompositeOperation = "lighter";
-            ctx.drawImage(
-              tintedCell(5, 2, pc2),
-              x * K,
-              y * K,
-              K,
-              K,
-            );
+            ctx.drawImage(tintedCell(5, 2, pc2), x * K, y * K, K, K);
           } else {
-            // 未通电:保留暗色中心色块
+            // 未点亮中心色块。
             ctx.globalAlpha = 0.6;
             ctx.globalCompositeOperation = "source-over";
-            ctx.drawImage(
-              tintedCell(5, 1, pc2),
-                x * K + K * 0.38,
-                y * K + K * 0.38,
-                K * 0.18,
-                K * 0.18,
-            );
+            ctx.drawImage(tintedCell(4, 2, pc2), x * K, y * K, K, K);
           }
           ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 1;
         }
     }
   }
-
   // 房间网格(开关在顶栏)
   if (showGrid) {
     ctx.strokeStyle = "rgba(255,255,255,0.55)";

@@ -33,6 +33,7 @@ function propagate(z, world, pw) {
   // 实现:遍历通电投影器,沿方向逐格前进;遇门停止,遇反射镜转向,遇非空物体停止。
   let L = [],
     any = [],
+    end = [],
     y,
     x;
   for (y = 0; y < WH; y++) {
@@ -74,13 +75,20 @@ function propagate(z, world, pw) {
           dx = XD[dir];
           dy = YD[dir];
         } else {
-          if (world.obj[z][ay][ax].type !== O.empty) break;
+          const blocked = world.obj[z][ay][ax];
+          if (blocked.type !== O.empty) {
+            // 只有迎面朝向自己的投影器才记录末端半格;其他障碍不画。
+            if (blocked.type === O.projector && blocked.dir === (dir ^ 2)) {
+              end.push({ x: ax, y: ay, side: blocked.dir, color: o.color });
+            }
+            break;
+          }
         }
         L[ay][ax][dir] = o.color;
         any[ay][ax] = 1;
       }
     }
-  return {L: L, any: any};
+  return {L: L, any: any, end: end};
 }
 
 
