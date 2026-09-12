@@ -150,11 +150,11 @@ byId("ckNoclip").addEventListener("change", function (e) {
   noclip = e.target.checked;
 });
 byId("dbgWand").addEventListener("click", function () {
-  cheatWand();
+  addWandCharge();
 });
 byId("dbgFeed").addEventListener("click", function () {
-  game.gems_stored = MAX_GEMS;
-}); // 调试:直接触发结局
+  addFeedCharge();
+}); // 调试:蓄力满触发结局
 byId("dbgCopy").addEventListener("click", function () {
   const t = dbgMsg || "(无调试信息)";
   /**

@@ -170,6 +170,7 @@ function update(ms) {
   if (game.gems_stored >= MAX_GEMS) {
     game.egg_timer += ms;
   }
+  updateDebugCharges(ms);
 }
 
 /* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */

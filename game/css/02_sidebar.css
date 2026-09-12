@@ -182,6 +182,22 @@
   cursor: not-allowed;
   transform: none;
 }
+.charge {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.charge::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  width: var(--charge, 0%);
+  background: linear-gradient(90deg, rgba(176, 124, 255, 0.62), rgba(125, 211, 252, 0.38));
+  opacity: 0.58;
+  pointer-events: none;
+  transition: width 0.12s ease;
+}
 
 label.chk {
   display: inline-flex;

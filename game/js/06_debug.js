@@ -14,12 +14,22 @@ try {
 } catch (e) {}
 let dbgMsg = "移动判定:—"; // 面板显示文本
 let dbgLog = []; // 最近 3 次报告
+// 调试蓄力:每次点击增加,随时间衰减,满 100 触发。
+const DEBUG_CHARGE_MAX = 100,
+  DEBUG_CHARGE_GAIN = 25,
+  DEBUG_CHARGE_DECAY_PER_MS = 0.01;
+let wandCharge = 0,
+  feedCharge = 0;
+const chargeUiShown = { wand: -1, feed: -1 };
 /**
  * 功能:清空移动判定调试日志和面板文本。
  */
 function dbgReset() {
   dbgLog = [];
   dbgMsg = "移动判定:—";
+  wandCharge = 0;
+  feedCharge = 0;
+  updateDebugChargeUI();
 }
 /**
  * 功能:返回指定格瓦片的中文名。
@@ -142,6 +152,56 @@ function cheatWand() {
   game.has_wand = true;
   game.num_gems = 30;
 }
+/**
+ * 功能:更新两个调试蓄力按钮的进度显示。
+ */
+function updateDebugChargeUI() {
+  const wandPct = Math.round(wandCharge);
+  const feedPct = Math.round(feedCharge);
+  if (wandPct !== chargeUiShown.wand) {
+    const wandBtn = byId("dbgWand");
+    if (wandBtn) wandBtn.style.setProperty("--charge", wandPct + "%");
+    chargeUiShown.wand = wandPct;
+  }
+  if (feedPct !== chargeUiShown.feed) {
+    const feedBtn = byId("dbgFeed");
+    if (feedBtn) feedBtn.style.setProperty("--charge", feedPct + "%");
+    chargeUiShown.feed = feedPct;
+  }
+}
+/**
+ * 功能:点击"获得30宝石"时蓄力;满 100 触发 cheatWand。
+ */
+function addWandCharge() {
+  wandCharge = Math.min(DEBUG_CHARGE_MAX, wandCharge + DEBUG_CHARGE_GAIN);
+  if (wandCharge >= DEBUG_CHARGE_MAX) {
+    wandCharge = 0;
+    cheatWand();
+  }
+  updateDebugChargeUI();
+}
+/**
+ * 功能:点击"投喂30宝石"时蓄力;满 100 触发投喂结局。
+ */
+function addFeedCharge() {
+  feedCharge = Math.min(DEBUG_CHARGE_MAX, feedCharge + DEBUG_CHARGE_GAIN);
+  if (feedCharge >= DEBUG_CHARGE_MAX) {
+    feedCharge = 0;
+    game.gems_stored = MAX_GEMS;
+  }
+  updateDebugChargeUI();
+}
+/**
+ * 功能:随时间衰减调试蓄力进度。
+ * @param {number} ms
+ */
+function updateDebugCharges(ms) {
+  if (wandCharge <= 0 && feedCharge <= 0) return;
+  const decay = DEBUG_CHARGE_DECAY_PER_MS * ms;
+  if (wandCharge > 0) wandCharge = Math.max(0, wandCharge - decay);
+  if (feedCharge > 0) feedCharge = Math.max(0, feedCharge - decay);
+  updateDebugChargeUI();
+}
 // 目标格分类(参数为 **列cx, 行cy**,与 world.tile[z][cy][cx] 一致;能力已内联判定)
 /**
  * 功能:判定目标格是否可走、需要开门或需要碎石。
@@ -169,6 +229,9 @@ globalThis.dbgStart = dbgStart;
 globalThis.dbgAdd = dbgAdd;
 globalThis.dbgFinish = dbgFinish;
 globalThis.cheatWand = cheatWand;
+globalThis.addWandCharge = addWandCharge;
+globalThis.addFeedCharge = addFeedCharge;
+globalThis.updateDebugCharges = updateDebugCharges;
 globalThis.cellKind = cellKind;
 Object.defineProperty(globalThis, "noclip", {
   configurable: true,

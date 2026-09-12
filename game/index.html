@@ -61,11 +61,19 @@
           </div>
         </section>
 
+        <section class="panel" id="info">
+          <h2>按键与目标</h2>
+          <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 <br />
+          <kbd>X</kbd> 射击 · <kbd>V</kbd> 宝石拾放 <br />
+          <kbd>Z</kbd> 撤销 · <kbd>Esc</kbd> 菜单 <br />
+          出生点 Z0 (12,20) Rover 每 0.63s 自主移动，投喂 30 颗宝石通关。
+        </section>
+
         <section class="panel" id="dbgrow" style="display: none">
           <h2>调试(仅验证玩法)</h2>
           <div class="rows">
-            <button class="btn" id="dbgWand">获得30宝石</button>
-            <button class="btn" id="dbgFeed">投喂30宝石 (看结局)</button>
+            <button class="btn charge" id="dbgWand">获得30宝石</button>
+            <button class="btn charge" id="dbgFeed">投喂30宝石 (看结局)</button>
             <label class="chk"><input type="checkbox" id="ckNoclip" />穿墙</label>
             <label class="chk">跳过开场<input type="checkbox" id="ckSkipBoot" /> </label>
             <label class="chk">闪烁<input type="checkbox" id="ckLightFlicker" checked /> </label>
@@ -88,13 +96,6 @@
               <span class="badge" id="dbgCopyState">最近 3 次</span>
             </div>
           </div>
-        </section>
-
-        <section class="panel" id="info">
-          <h2>按键与目标</h2>
-          <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 · <kbd>X</kbd> 射击 · <kbd>V</kbd> 宝石拾/放<br />
-          <kbd>Z</kbd> 撤销上一步 · <kbd>#</kbd> 楼梯切层 · <kbd>Esc</kbd> 菜单<br />
-          出生点 Z0 (12,20);Rover 每 0.63s 自主移动,吃满 30 颗宝石通关。
         </section>
       </aside>
     </div>
