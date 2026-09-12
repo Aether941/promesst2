@@ -2,10 +2,11 @@
 
 /* ================= 侧边栏 ================= */
 #side {
-  width: 320px;
+  width: 360px;
   min-width: 0;
   height: 100vh;
-  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-y: scroll;
   padding: 14px 14px 20px;
   display: grid;
   grid-auto-rows: max-content;
@@ -16,11 +17,16 @@
     linear-gradient(180deg, rgba(18, 24, 39, 0.98), rgba(10, 14, 24, 0.98));
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: -16px 0 48px rgba(0, 0, 0, 0.22);
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: #3b4769 transparent;
+  scrollbar-color: #3b4769 rgba(255, 255, 255, 0.04);
 }
 #side::-webkit-scrollbar {
   width: 8px;
+}
+#side::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 999px;
 }
 #side::-webkit-scrollbar-thumb {
   background: #3b4769;

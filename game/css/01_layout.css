@@ -3,7 +3,7 @@
 /* ================= 整体布局:CSS Grid 两栏外壳 ================= */
 #layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   height: 100vh;
   width: 100vw;
 }
