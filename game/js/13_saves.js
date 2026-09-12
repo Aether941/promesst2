@@ -148,7 +148,9 @@ function fmtTime(ms) {
     " " +
     p(d.getHours()) +
     ":" +
-    p(d.getMinutes())
+    p(d.getMinutes()) +
+    ":" +
+    p(d.getSeconds())
   );
 }
 /**
@@ -172,11 +174,17 @@ function renderSlots() {
     list.forEach(function (d, idx) {
       const i = idx + 1,
         m = d && d.meta ? d.meta : null;
+      const carry =
+        i === activeSlot && globalThis.lastSnap
+          ? globalThis.game.num_gems
+          : d && d.g && d.g.player && typeof d.g.player.gems === "number"
+            ? d.g.player.gems
+            : 0;
+      const hasWand =
+        i === activeSlot && globalThis.lastSnap ? globalThis.game.has_wand : !!(m && m.wand);
       const row = document.createElement("div");
       row.className =
-        "slot" +
-        (i === activeSlot ? " active" : "") +
-        (i === copySource ? " copying" : "");
+        "slot" + (i === activeSlot ? " active" : "") + (i === copySource ? " copying" : "");
       const info = document.createElement("div");
       info.className = "info";
       info.innerHTML =
@@ -191,10 +199,10 @@ function renderSlots() {
             fmtTime(m.savedAt) +
             " · 步数 " +
             m.steps +
-            " · 已喂 " +
-            (m.gems >= 0 ? m.gems : 0) +
-            "/30" +
-            (m.wand ? " · 有魔杖" : "") +
+            " · 宝石 " +
+            carry +
+            " · 魔杖 " +
+            (hasWand ? "有" : "无") +
             (m.cleared ? " · 已通关" : "")
           : "（空）");
       row.appendChild(info);
@@ -232,8 +240,7 @@ function renderSlots() {
           }
           copySource = i;
           renderSlots();
-          byId("slotHint").textContent =
-            "已选中槽 " + i + " 作为复制源,请点击其他槽的「粘贴」。";
+          byId("slotHint").textContent = "已选中槽 " + i + " 作为复制源,请点击其他槽的「粘贴」。";
         });
       } else if (copySource === i) {
         mk("取消", function () {
@@ -269,7 +276,21 @@ function exportSave() {
   const blob = new Blob([data], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "promesst2-slot" + activeSlot + ".json";
+  const now = new Date();
+  const p = function (n) {
+    return (n < 10 ? "0" : "") + n;
+  };
+  const stamp =
+    now.getFullYear() +
+    p(now.getMonth() + 1) +
+    p(now.getDate()) +
+    p(now.getHours()) +
+    p(now.getMinutes()) +
+    p(now.getSeconds());
+  const carry = globalThis.game.num_gems;
+  const wand = globalThis.game.has_wand ? "wand" : "nowand";
+  a.download =
+    "promesst2-slot" + activeSlot + "-" + "gems" + carry + "-" + wand + "-" + stamp + ".json";
   a.click();
   setTimeout(function () {
     URL.revokeObjectURL(a.href);
