@@ -3,7 +3,7 @@
    移动判定调试报告
    拆分自原 game.js;模块加载顺序见 index.html。 */
 
-// ---------- 调试:移动判定报告(覆盖全部颜色,最近 3 次) ----------
+// ---------- 调试:移动判定报告(覆盖全部颜色,保存最近 5 次) ----------
 let noclip = false,
   debugOn = false;
 let skipLogoMenu = false;
@@ -13,7 +13,9 @@ try {
   skipLogoMenu = localStorage.getItem("promesst2.skipLogoMenu") === "1";
 } catch (e) {}
 let dbgMsg = "移动判定:—"; // 面板显示文本
-let dbgLog = []; // 最近 3 次报告
+let dbgLog = []; // 最近 5 次报告
+const DBG_LOG_MAX = 5;
+let dbgLogCursor = -1;
 // 调试蓄力:每次点击增加,随时间衰减,满 100 触发。
 const DEBUG_CHARGE_MAX = 100,
   DEBUG_CHARGE_GAIN = 25,
@@ -26,6 +28,7 @@ const chargeUiShown = { wand: -1, feed: -1 };
  */
 function dbgReset() {
   dbgLog = [];
+  dbgLogCursor = -1;
   dbgMsg = "移动判定:—";
   wandCharge = 0;
   feedCharge = 0;
@@ -33,6 +36,7 @@ function dbgReset() {
   const feedBtn = byId("dbgFeed");
   if (wandBtn) wandBtn.disabled = false;
   if (feedBtn) feedBtn.disabled = false;
+  updateDbgNavUI();
   updateDebugChargeUI();
 }
 /**
@@ -134,7 +138,7 @@ function dbgAdd(D, s) {
   if (D) D.lines.push(s);
 }
 /**
- * 功能:结束调试报告,写入最近 3 条日志并输出到控制台。
+ * 功能:结束调试报告,保存最近 5 条日志并输出当前选中的一条。
  * @param {*} D
  * @param {*} desc
  */
@@ -142,12 +146,48 @@ function dbgFinish(D, desc) {
   if (!D) return;
   D.lines.push("结果: " + desc);
   const text = D.lines.join("\n");
-  dbgLog.unshift(text);
-  if (dbgLog.length > 3) dbgLog.length = 3;
-  dbgMsg = dbgLog.join("\n· · · · ·\n");
+  dbgLog.push(text);
+  if (dbgLog.length > DBG_LOG_MAX) dbgLog.shift();
+  dbgLogCursor = dbgLog.length - 1;
+  dbgMsg = dbgLog[dbgLogCursor];
+  updateDbgNavUI();
   try {
     if (window.console) console.log("[PROMESST2 移动判定]\n" + text);
   } catch (e) {}
+}
+/**
+ * 功能:刷新调试信息翻页控件的索引与按钮状态。
+ */
+function updateDbgNavUI() {
+  const index = byId("dbgIndex");
+  const prev = byId("dbgPrev");
+  const next = byId("dbgNext");
+  const total = dbgLog.length;
+  if (index) index.textContent = total ? dbgLogCursor + 1 + "/" + total : "0/0";
+  if (prev) prev.disabled = total <= 0 || dbgLogCursor <= 0;
+  if (next) next.disabled = total <= 0 || dbgLogCursor >= total - 1;
+}
+/**
+ * 功能:切换当前显示的调试报告。
+ * @param {number} delta
+ */
+function dbgShowLog(delta) {
+  if (!dbgLog.length) return;
+  dbgLogCursor = Math.max(0, Math.min(dbgLog.length - 1, dbgLogCursor + delta));
+  dbgMsg = dbgLog[dbgLogCursor];
+  updateDbgNavUI();
+}
+/**
+ * 功能:显示上一条调试报告。
+ */
+function dbgShowPrev() {
+  dbgShowLog(-1);
+}
+/**
+ * 功能:显示下一条调试报告。
+ */
+function dbgShowNext() {
+  dbgShowLog(1);
 }
 /**
  * 功能:调试:直接获得魔杖和 30 颗宝石。
@@ -240,6 +280,8 @@ globalThis.dbgBlockReason = dbgBlockReason;
 globalThis.dbgStart = dbgStart;
 globalThis.dbgAdd = dbgAdd;
 globalThis.dbgFinish = dbgFinish;
+globalThis.dbgShowPrev = dbgShowPrev;
+globalThis.dbgShowNext = dbgShowNext;
 globalThis.cheatWand = cheatWand;
 globalThis.addWandCharge = addWandCharge;
 globalThis.addFeedCharge = addFeedCharge;

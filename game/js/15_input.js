@@ -157,16 +157,16 @@ byId("dbgFeed").addEventListener("click", function () {
 }); // 调试:蓄力满触发结局
 byId("dbgCopy").addEventListener("click", function () {
   const t = dbgMsg || "(无调试信息)";
+  const copyBtn = byId("dbgCopy");
   /**
    * 功能:显示复制调试信息操作的结果。
    * @param {*} ok
    */
   function done(ok) {
-    const st = byId("dbgCopyState");
-    if (!st) return;
-    st.textContent = ok ? "已复制到剪贴板" : "请手动选择复制";
+    if (!copyBtn) return;
+    copyBtn.textContent = ok ? "已复制" : "复制失败";
     setTimeout(function () {
-      st.textContent = "最近 3 次";
+      copyBtn.textContent = "复制调试信息";
     }, 2000);
   }
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -193,6 +193,12 @@ byId("dbgCopy").addEventListener("click", function () {
   }
 });
 
+byId("dbgPrev").addEventListener("click", function () {
+  dbgShowPrev();
+});
+byId("dbgNext").addEventListener("click", function () {
+  dbgShowNext();
+});
 window.addEventListener("resize", function () {
   resizeCanvas();
 });

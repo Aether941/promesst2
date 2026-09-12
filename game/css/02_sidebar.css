@@ -134,6 +134,35 @@
   color: #fff;
   font-weight: 700;
 }
+.dbg-nav {
+  gap: 6px;
+}
+.dbg-nav-btn {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--txt);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.dbg-nav-btn:hover:not(:disabled) {
+  background: rgba(176, 124, 255, 0.28);
+  color: #fff;
+}
+.dbg-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.dbg-nav b {
+  min-width: 2.6em;
+  color: #fff;
+  text-align: center;
+}
 
 .btn {
   appearance: none;

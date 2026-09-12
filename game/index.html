@@ -85,7 +85,11 @@
             <pre id="dbgMove">移动判定:—</pre>
             <div class="rows" style="margin-top: 5px">
               <button class="btn" id="dbgCopy">复制调试信息</button>
-              <span class="badge" id="dbgCopyState">最近 3 次</span>
+              <span class="badge dbg-nav" id="dbgNav">
+                <button class="dbg-nav-btn" id="dbgPrev" disabled>&lt;</button>
+                <b id="dbgIndex">0/0</b>
+                <button class="dbg-nav-btn" id="dbgNext" disabled>&gt;</button>
+              </span>
             </div>
           </div>
         </section>
