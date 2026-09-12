@@ -53,6 +53,14 @@
   line-height: 1.4;
 }
 
+#side .sub a {
+  color: var(--dim);
+}
+
+#side .sub a:hover {
+  color: var(--txt);
+}
+
 .panel {
   position: relative;
   background: linear-gradient(180deg, rgba(30, 38, 60, 0.92), rgba(19, 25, 41, 0.94));

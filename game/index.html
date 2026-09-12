@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PROMESST 2 · 网页版移植 — M6(Logo / 菜单 / 存档 / 结算)</title>
+    <title>PROMESST 2 · Web</title>
     <link rel="stylesheet" href="./css/main.css" />
   </head>
   <body>
@@ -14,8 +14,13 @@
       <!-- ===================== 右:控制面板 ===================== -->
       <aside id="side">
         <div>
-          <h1>PROMESST 2 · 网页版</h1>
-          <div class="sub">整幅大地图 · 规则照抄 main.c(2014) · M6</div>
+          <h1>PROMESST 2 · Web</h1>
+          <div class="sub">
+            Original by
+            <a href="https://silverspaceship.com/promesst2/" target="_blank">Sean Barrett</a>
+             · Port by DeepSeek & <a href="https://github.com/Aether941/promesst2" target="_blank">me</a>
+          </div>
+          <div class="sub" id="buildDate">Last Update at</div>
         </div>
 
         <div id="err"></div>
@@ -98,7 +103,7 @@
         <section class="panel" id="info">
           <h2>按键与目标</h2>
           <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 · <kbd>X</kbd> 射击 · <kbd>V</kbd> 宝石拾放 <br />
-          出生点 Z0 (12,20) Rover 每 0.63s 自主移动，投喂 30 颗宝石通关。
+          出生点 Z0 (12,20)，投喂 30 颗宝石通关。
         </section>
       </aside>
     </div>
@@ -130,9 +135,6 @@
         <div class="name">
           CASEY MURATORI &nbsp; ZACH SAMUELS<br />JONATHAN BLOW &nbsp; ERIN ROBINSON<br />ALEX
           MARTIN &nbsp; DAVE MOORE
-        </div>
-        <div class="role" style="margin-top: 14px">
-          网页版移植 · 规则照抄 main.c(Sean Barrett, 2014)
         </div>
       </div>
       <button class="btn" id="btnCreditsBack">返回(Esc)</button>

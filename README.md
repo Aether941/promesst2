@@ -1,5 +1,8 @@
 # PROMESST 2 — HTML5 网页版移植设计文档(v4.1)
 
+> 源码素材出处: [silverspaceship@Sean Barrett](https://silverspaceship.com/promesst2/)
+> 网页版移植: DeepSeek-V41-Flash High
+
 > 目标:**玩法逻辑 1:1 保真 + 网页化 UI**,按下述裁定:
 > **① 整幅大地图视野(非原版单房间取景)**
 > **② 撤销 = 回到上一步,一次性(不做重做)**
@@ -253,7 +256,7 @@ M1 静态(已具备)→ M2 移动/整图渲染 → M3 光束+能力+撤销骨架
 
 ## 11. 合规提示
 
-同 v3(Sean Barrett 2014 / Oryx;公开分发前确认授权;Credits 保留署名)。
+同 v3(Sean Barrett 2014 / Oryx;原版出处:https://silverspaceship.com/promesst2/;网页版移植:DeepSeek-V41-Flash High;公开分发前确认授权;Credits 保留署名)。
 
 ---
 

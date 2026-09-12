@@ -42,6 +42,26 @@ if (selFps) {
   });
 }
 /**
+ * 功能:把文档最后修改时间自动填到 buildDate 元素里,并附加本地时区。
+ */
+function stampBuildDate() {
+  const el = byId("buildDate");
+  if (!el) return;
+  const label = el.textContent.trim() || "Last Update at";
+  const raw = new Date(document.lastModified);
+  const d = isNaN(raw.getTime()) ? new Date() : raw;
+  const p = function (n) {
+    return `${n < 10 ? "0" : ""}${n}`;
+  };
+  const stamp = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  const offsetMin = -d.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMin);
+  const offset = `UTC${sign}${p(Math.floor(abs / 60))}:${p(abs % 60)}`;
+  el.textContent = `${label} ${stamp} ${offset}`;
+}
+stampBuildDate();
+/**
  * 功能:rAF 主循环:推进时间/模式/16ms 模拟,并按所选 FPS 限帧渲染。
  * @param {*} now
  */
