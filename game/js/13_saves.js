@@ -254,7 +254,7 @@ function exportSave() {
   const p = function (n) {
     return (n < 10 ? "0" : "") + n;
   };
-  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
+  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
   const carry = globalThis.game.num_gems;
   const wand = globalThis.game.has_wand ? "wand" : "nowand";
   a.download = `promesst2-slot${activeSlot}-gems${carry}-${wand}-${stamp}.json`;
