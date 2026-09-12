@@ -161,7 +161,8 @@ function enterResult() {
   // rendered behind the menu would immediately pull us back to result.
   if (mainMode !== "game") return;
   clearedFlag = true;
-  HISTORY = []; // 原版通关不落档;这里只清历史并记录通关标记
+  game.egg_timer = 0;
+  lastSnap = buildSnap(); // 保存真正的通关状态,并保留完整撤销历史
   scheduleSave();
   byId("resZaps").textContent = `USED ${game.num_zaps} ZAPS`;
   byId("resFed").textContent = `已喂宝石 ${game.gems_stored}/${MAX_GEMS}`;

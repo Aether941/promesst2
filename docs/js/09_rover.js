@@ -257,7 +257,7 @@ function update(ms) {
   }
 
   // 集满 30 颗后累计 egg_timer,驱动结局动画(照 C L1322-1324;必须与是否有输入无关)
-  if (game.gems_stored >= MAX_GEMS) {
+  if (game.gems_stored >= MAX_GEMS && !globalThis.clearedFlag) {
     game.egg_timer += ms;
   }
   updateDebugCharges(ms);

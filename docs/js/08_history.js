@@ -369,6 +369,7 @@ function restoreSave(d) {
   HISTORY = (d.h || []).slice();
   ckptSnap = d.ck || null;
   clearedFlag = !!(d.meta && d.meta.cleared);
+  if (clearedFlag) game.egg_timer = 0; // 通关档读入后不再自动重播结算
   lastSnap = buildSnap();
 }
 window.addEventListener("pagehide", function () {

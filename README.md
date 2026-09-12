@@ -188,7 +188,7 @@ HUD 提示文案随键位更新(例:`X TO FIRE / V TO GET/PUT / Z TO UNDO`)。
 - 内容:`{meta, gamestate, checkpoint, history[]}`;
   - `history[]` = 自开局全部已应用差分条目(支撑撤销到第一步);
 - 兜底:启动/加载失败 → 报错并在内存态运行(可继续游玩,提示本次不持久化);
-- 通关标记写 meta;通关结算后清历史(新一周目从零开始);
+- 通关标记写 meta;通关时更新当前快照、egg_timer 归零并保留 history,通关档读入后仍可继续/撤销;
 - 旧 localStorage(如有)自动迁移一次。
 
 ### 6.8 结局与元流程
@@ -288,7 +288,7 @@ M1 静态(已具备)→ M2 移动/整图渲染 → M3 光束+能力+撤销骨架
 | 菜单项与可用性 | 继续(需开局)/ 从魔杖恢复(需 `ckptSnap`,即拾到魔杖)/ 新游戏 / 存档管理 / Credits / 保存并退出(保存后重播片头);上下键选择会跳过不可用项 | `choices` L1340–1348、`get_choices` L1385–1394、`move_selection` L1396、`do_metagame_key` L1510 |
 | 从魔杖恢复 | 应用 `ckptSnap` 并**清空撤销历史**(原版 `restore_map(&checkpoint)+flush_undo`) | L1527–1532 |
 | Credits | 名单与顺序照抄(GAME BY / ENDGAME ART / TWIST / LINUX PORT / PLAYTEST) | `credits[]` L1354–1382 |
-| 结局四阶段 | `egg_timer>8000` 紫→白加法闪光;`>14000` YOU WIN;`>17000` USED n ZAPS;`>22000` 结算页(清历史 + 标记 cleared) | L2382–2417 |
+| 结局四阶段 | `egg_timer>8000` 紫→白加法闪光;`>14000` YOU WIN;`>17000` USED n ZAPS;`>22000` 结算页(更新快照 + egg_timer 归零 + 标记 cleared,保留撤销历史) | L2382–2417 |
 | 气泡文字 | 仅当 rover 在 z0 房间 (2,3) 且已开始喂食:喂食计数为 0 且闪烁时绘制原版 `FEED ME` 精灵 (5,6)(6,6) / `N MORE` / `N TO GO`(`gems%7==3`)/ `NEED MORE`(1–12)/ `WELL NOW`(`egg_timer>=8000`),并保留 `animcycle%15000<2000`、`%45000<2000`、`feed_timer>0` 的闪烁条件 | L2144–2191 |
 | 蜥蜴化 | 按原版绘制:前 3 秒小蜥蜴 (6,5);之后闪烁/变为 2x2 龙 (4,3)-(5,4) | L2035–2069 |
 | 世界内文字 | 复用精灵表内置字体(`draw_text` 移植:字符集 + `fsize[42]`) | L1685–1705 |
