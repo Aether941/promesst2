@@ -294,11 +294,15 @@ label.chk input[type="checkbox"]:focus-visible {
   background: rgba(12, 17, 29, 0.72);
   color: #5d6880;
   font-size: 11.5px;
+  visibility: hidden;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease,
     box-shadow 0.15s ease;
+}
+.lamp.known {
+  visibility: visible;
 }
 .lamp.on {
   filter: brightness(1.12);

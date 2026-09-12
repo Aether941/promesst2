@@ -16,6 +16,9 @@ const hud = {
   undo: "",
   move: "",
 };
+// 能力名:未使用过显示颜色名,使用过显示能力名(照原版 HUD L2294-2305)。
+const ABILITY_COLOR_NAMES = { 0: "红", 1: "绿", 3: "橙", 4: "黄", 5: "紫" };
+const ABILITY_ACTION_NAMES = { 0: "开门", 1: "穿透", 3: "双格", 4: "粉碎", 5: "端点" };
 /**
  * 功能:刷新 HUD 状态和能力灯;通过 hud 缓存避免重复写 DOM。
  */
@@ -71,7 +74,7 @@ function refreshHud() {
     hud.undo = u;
     byId("bund").textContent = u;
   }
-  // 能力灯:照到=亮,用过(ability_flag)=暗(原版 HUD 语义 L2294–2305)
+  // 能力灯:照到=亮,用过=暗;两者都没有时原版不显示,这里用 known 控制可见性。
   if (FEATURE_LIGHT) {
     const ab = [0, 0, 0, 0, 0, 0, 0, 0];
     getAbilities(ab);
@@ -81,9 +84,13 @@ function refreshHud() {
       for (let li = 0; li < kids.length; li++) {
         const c = parseInt(kids[li].getAttribute("data-c"), 10);
         const on = ab[c] > 0,
-          used = (game.ability_flag & (1 << c)) !== 0;
+          used = (game.ability_flag & (1 << c)) !== 0,
+          known = on || used;
         kids[li].classList.toggle("on", on);
         kids[li].classList.toggle("used", !on && used);
+        kids[li].classList.toggle("known", known);
+        const name = used ? ABILITY_ACTION_NAMES[c] : ABILITY_COLOR_NAMES[c];
+        if (kids[li].textContent !== name) kids[li].textContent = name;
       }
     }
     if (debugOn && hud.move !== dbgMsg) {
