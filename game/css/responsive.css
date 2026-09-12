@@ -1,0 +1,26 @@
+/* PROMESST 2 网页版移植 - 窄屏响应式布局 */
+
+/* ================= 窄屏:上下结构(画面在上) ================= */
+@media (max-width: 820px) {
+  html,
+  body {
+    overflow: auto;
+  }
+  #layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+  #stage {
+    height: auto;
+    min-height: 62vh;
+  }
+  #side {
+    width: auto;
+    height: auto;
+    overflow: visible;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    box-shadow: none;
+  }
+}

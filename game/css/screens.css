@@ -1,0 +1,118 @@
+/* PROMESST 2 网页版移植 - Logo / 菜单 / Credits / 存档 / 结算覆盖层 */
+
+/* ================= 覆盖层:Logo / 菜单 / Credits / 存档 / 结算 ================= */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(6, 8, 14, 0.93);
+  z-index: 50;
+  padding: 24px;
+}
+.screen.on {
+  display: flex;
+}
+.screen h2 {
+  margin: 0;
+  font-size: 26px;
+  color: #fff;
+  letter-spacing: 1px;
+}
+.screen .sub {
+  color: var(--dim);
+  font-size: 13px;
+  text-align: center;
+}
+#scrLogo img {
+  width: min(420px, 70vw);
+  image-rendering: pixelated;
+}
+#scrMenu .title {
+  width: min(520px, 80vw);
+  image-rendering: pixelated;
+  margin-bottom: 4px;
+}
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(380px, 90vw);
+}
+.menu button {
+  background: #171d2d;
+  border: 1px solid var(--line);
+  color: #cfd6e6;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: left;
+}
+.menu button.sel {
+  border-color: var(--accent);
+  background: #2a1f45;
+  color: #fff;
+}
+.menu button:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+.menu button small {
+  display: block;
+  color: var(--dim);
+  font-size: 11.5px;
+}
+.credits {
+  max-height: 60vh;
+  overflow: auto;
+  text-align: center;
+  line-height: 1.9;
+}
+.credits .role {
+  color: #8b93a7;
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-top: 6px;
+}
+.credits .name {
+  color: #ffe1a8;
+  font-size: 17px;
+}
+.slots {
+  width: min(720px, 94vw);
+}
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 4px;
+}
+.slot .info {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+.slot .info b {
+  color: #fff;
+}
+.slot.active {
+  background: rgba(176, 124, 255, 0.09);
+}
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+  align-items: center;
+}
+.note {
+  color: #ffd479;
+  font-size: 12.5px;
+}
+
