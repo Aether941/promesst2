@@ -285,8 +285,8 @@ M1 静态(已具备)→ M2 移动/整图渲染 → M3 光束+能力+撤销骨架
 | 从魔杖恢复 | 应用 `ckptSnap` 并**清空撤销历史**(原版 `restore_map(&checkpoint)+flush_undo`) | L1527–1532 |
 | Credits | 名单与顺序照抄(GAME BY / ENDGAME ART / TWIST / LINUX PORT / PLAYTEST) | `credits[]` L1354–1382 |
 | 结局四阶段 | `egg_timer>8000` 紫→白加法闪光;`>14000` YOU WIN;`>17000` USED n ZAPS;`>22000` 结算页(清历史 + 标记 cleared) | L2382–2417 |
-| 气泡文字 | 仅当 rover 在 z0 房间 (2,3) 且已开始喂食:`?` / `N MORE` / `N TO GO`(`gems%7==3`)/ `NEED MORE`(1–12)/ `WELL NOW`(`egg_timer>=8000`),并保留 `animcycle%15000<2000`、`%45000<2000`、`feed_timer>0` 的闪烁条件 | L2144–2191 |
-| 蜥蜴化 | 近似:喂满后 rover 处叠加彩虹光环 | L2035–2069 |
+| 气泡文字 | 仅当 rover 在 z0 房间 (2,3) 且已开始喂食:喂食计数为 0 且闪烁时绘制原版 `FEED ME` 精灵 (5,6)(6,6) / `N MORE` / `N TO GO`(`gems%7==3`)/ `NEED MORE`(1–12)/ `WELL NOW`(`egg_timer>=8000`),并保留 `animcycle%15000<2000`、`%45000<2000`、`feed_timer>0` 的闪烁条件 | L2144–2191 |
+| 蜥蜴化 | 按原版绘制:前 3 秒小蜥蜴 (6,5);之后闪烁/变为 2x2 龙 (4,3)-(5,4) | L2035–2069 |
 | 世界内文字 | 复用精灵表内置字体(`draw_text` 移植:字符集 + `fsize[42]`) | L1685–1705 |
 | HUD | 能力灯(照到=亮/用过=暗,同 `ability_flag` 语义)、宝石携带数、已喂、魔杖、可撤销步数、方向/房间/步数 | L2276–2372 |
 | 存档 | 3 槽(`v1.slot1..3`)+ 导出/导入 JSON;自动存档写入“当前槽”;兼容 M5 的 `main` 键 | §6.7 |

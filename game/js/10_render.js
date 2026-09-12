@@ -12,7 +12,7 @@
  * @param {number} [camY=0] 房间视角相机在世界中的格偏移 Y
  */
 function drawEndingOverlay(g, k, camX, camY) {
-  // 实现:先画 rover 彩虹与气泡,再按 egg_timer 阶段绘制结局画面。
+  // 实现:先画 rover 龙化与气泡,再按 egg_timer 阶段绘制结局画面。
   // 世界内叠层按相机偏移绘制;全屏闪白/结局文字仍使用屏幕坐标。
   camX = camX || 0;
   camY = camY || 0;
@@ -27,21 +27,33 @@ function drawEndingOverlay(g, k, camX, camY) {
         rover = { x: x, y: y };
         break;
       }
-  // rover 在当前视角画布中的左上角坐标;供彩虹/气泡等世界内叠层使用。
+  // rover 在当前视角画布中的左上角坐标;供龙化/气泡等世界内叠层使用。
   const rx = rover ? (rover.x - camX) * K : 0,
     ry = rover ? (rover.y - camY) * K : 0;
 
-  // 被喂饱的 rover“蜥蜴化”:彩虹光环(近似原版 L2035–2069)
+  // Fed rover lizard/dragon transformation (original L2035-2069).
+  // First 3s: small cell (6,5). After that: flash between small (6,5)
+  // stretched to 32px and the 2x2 dragon region (4,3)-(5,4).
   if (rover && game.egg_timer > 0) {
-    const pulse = (Math.sin(animcycle / 120) + 1) / 2;
-    g.save();
-    g.globalCompositeOperation = "lighter";
-    g.globalAlpha = 0.3 + 0.35 * pulse;
-    g.fillStyle = "hsl(" + ((animcycle / 8) % 360) + ",85%,60%)";
-    g.fillRect(rx - K * 0.3, ry - K * 0.3, K * 1.6, K * 1.6);
-    g.restore();
+    const ox = rx + K / 4;
+    const oy = ry + K / 4;
+    if (game.egg_timer <= 3000) {
+      g.drawImage(cellFrom(6, 5), ox, oy, K, K);
+    } else {
+      const scale = Math.min(1, (game.egg_timer - 3000) / 3000) / 2 + 0.5;
+      const size = 2 * K * scale;
+      if (
+        game.egg_timer % 200 < (game.egg_timer - 3000) / 20 ||
+        game.egg_timer > 6000
+      ) {
+        g.drawImage(img, 64, 48, 32, 32, ox, oy, size, size);
+      } else {
+        g.drawImage(cellFrom(6, 5), ox, oy, size, size);
+      }
+    }
   }
-  // 气泡文字:照原版 L2144–2191(仅当 rover 在 z0 的 (2,3) 房间且已开始喂食)
+  // Bubble text (original L2144-2191). At gems_stored===0 the original
+  // draws the FEED ME cells (5,6)(6,6): sprite rect (80,96)-(112,112).
   if (
     rover &&
     z === 0 &&
@@ -49,28 +61,31 @@ function drawEndingOverlay(g, k, camX, camY) {
     ((rover.y / SY) | 0) === 3 &&
     game.gems_stored >= 0
   ) {
-    let text = null;
     if (game.gems_stored === 0) {
-      if (animcycle % 15000 < 2000) text = "?";
-    } else if (game.egg_timer >= 8000) text = "WELL NOW";
-    else if (animcycle % 45000 < 2000 || feed_timer > 0) {
-      const left = MAX_GEMS - game.gems_stored;
-      if (game.gems_stored >= 1 && game.gems_stored <= 12) text = "NEED MORE";
-      else if (game.gems_stored % 7 === 3) text = left + " TO GO";
-      else text = left + " MORE";
-    }
-    if (text) {
-      const size = Math.max(0.9, k * 0.55);
-      const w = bmpTextWidth(size, text, 1);
-      g.save();
-      g.fillStyle = "rgba(0,0,0,0.55)";
-      g.fillRect(rx + K / 2 - w / 2 - 3, ry - size * 10 - 3, w + 6, size * 9 + 6);
-      g.fillStyle = "#ffffff";
-      drawBmpText(g, rx + K / 2 - w / 2, ry - size * 10, size, text, 1);
-      g.restore();
+      if (animcycle % 15000 < 2000) {
+        g.drawImage(img, 80, 96, 32, 16, rx + K / 2, ry + K / 8, 2 * K, K);
+      }
+    } else {
+      let text = null;
+      if (game.egg_timer >= 8000) text = "WELL NOW";
+      else if (animcycle % 45000 < 2000 || feed_timer > 0) {
+        const left = MAX_GEMS - game.gems_stored;
+        if (game.gems_stored >= 1 && game.gems_stored <= 12) text = "NEED MORE";
+        else if (game.gems_stored % 7 === 3) text = left + " TO GO";
+        else text = left + " MORE";
+      }
+      if (text) {
+        const size = Math.max(0.9, k * 0.55);
+        const w = bmpTextWidth(size, text, 1);
+        g.save();
+        g.fillStyle = "rgba(0,0,0,0.55)";
+        g.fillRect(rx + K / 2 - w / 2 - 3, ry - size * 10 - 3, w + 6, size * 9 + 6);
+        g.fillStyle = "#ffffff";
+        drawBmpText(g, rx + K / 2 - w / 2, ry - size * 10, size, text, 1);
+        g.restore();
+      }
     }
   }
-  // 结局三阶段(照原版 L2382–2417)
   if (game.egg_timer > 8000) {
     let a = (game.egg_timer - 8000) >> 4; // 原版:比 >>4
     const pv = powers[5]; // COLOR_violet
@@ -259,6 +274,8 @@ function render() {
           oc = cellFrom(5 + o.dir, 6);
           break;
         case O.rover:
+          // Fed rover is drawn by drawEndingOverlay as the lizard/dragon.
+          if (game.egg_timer > 0) continue;
           oc = cellFrom(6, 2 + o.dir);
           break;
         case O.stone:
