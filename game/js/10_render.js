@@ -133,24 +133,21 @@ function drawEndingOverlay(g, k) {
 const cv = document.getElementById("cv");
 // 游戏主画布的 2D 上下文。
 const ctx = cv.getContext("2d");
-// 手动缩放倍率;autoFit/follow/showGrid 为适配/跟随/网格开关。
-let zoomK = 2,
-  autoFit = true,
-  follow = true,
-  showGrid = false;
+// 网格显示开关。
+let showGrid = false;
 // 调试开关:关闭后 getLightFlicker() 固定返回 1,光束不再闪烁。
 let lightFlickerEnabled = true;
 try {
   lightFlickerEnabled = localStorage.getItem("promesst2.lightFlicker") !== "0";
 } catch (e) {}
-// 未缩放的单屏逻辑尺寸。
-const canvasSize = 384;
+// 整幅地图的逻辑尺寸:WW * CELL(24 * 16 = 384 px)。
+const canvasSize = WW * CELL;
 
 /**
- * 功能:返回当前每格像素大小。
+ * 功能:返回当前每格像素大小(由画布后备缓冲尺寸反推)。
  */
 function kPx() {
-  return CELL * zoomK;
+  return cv.width / WW;
 }
 
 /**
@@ -191,8 +188,8 @@ function render() {
   // 实现:依次绘制地图瓦片、物体、光束、网格、玩家、结局层和 HUD。
   if (!world || !img) return;
   const z = game.pz,
-    k = zoomK,
-    K = kPx();
+    K = kPx(),
+    k = K / CELL;
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.imageSmoothingEnabled = false;
 
@@ -383,21 +380,7 @@ globalThis.render = render;
 globalThis.cv = cv;
 globalThis.ctx = ctx;
 globalThis.canvasSize = canvasSize;
-Object.defineProperty(globalThis, "zoomK", {
-  configurable: true,
-  get() { return zoomK; },
-  set(value) { zoomK = value; },
-});
-Object.defineProperty(globalThis, "autoFit", {
-  configurable: true,
-  get() { return autoFit; },
-  set(value) { autoFit = value; },
-});
-Object.defineProperty(globalThis, "follow", {
-  configurable: true,
-  get() { return follow; },
-  set(value) { follow = value; },
-});
+
 Object.defineProperty(globalThis, "showGrid", {
   configurable: true,
   get() { return showGrid; },

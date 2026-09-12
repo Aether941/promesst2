@@ -80,23 +80,6 @@ window.addEventListener("blur", function () {
 });
 
 // 控件
-byId("btnFit").addEventListener("click", function () {
-  autoFit = true;
-  saveViewPrefs();
-  resizeCanvas();
-});
-byId("btnZo").addEventListener("click", function () {
-  autoFit = false;
-  zoomK = Math.max(1, zoomK - 1);
-  saveViewPrefs();
-  resizeCanvas();
-});
-byId("btnZi").addEventListener("click", function () {
-  autoFit = false;
-  zoomK = Math.min(6, zoomK + 1);
-  saveViewPrefs();
-  resizeCanvas();
-});
 byId("btnUndo").addEventListener("click", function () {
   if (mainMode === "game") {
     undo();
@@ -125,10 +108,6 @@ byId("btnAgain").addEventListener("click", function () {
 });
 byId("btnResultMenu").addEventListener("click", function () {
   setMode("menu");
-});
-byId("ckFollow").addEventListener("change", function (e) {
-  follow = e.target.checked;
-  centerPlayer();
 });
 byId("ckGrid").addEventListener("change", function (e) {
   showGrid = e.target.checked;
@@ -200,7 +179,7 @@ byId("dbgNoclip").addEventListener("click", function () {
   byId("dbgNoclipState").textContent = "穿墙:" + (noclip ? "开" : "关");
 });
 window.addEventListener("resize", function () {
-  if (autoFit) resizeCanvas();
+  resizeCanvas();
 });
 
 /* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */

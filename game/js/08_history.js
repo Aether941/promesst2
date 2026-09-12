@@ -233,7 +233,6 @@ function undo() {
   lightDirty = true;
   lastSnap = buildSnap();
   scheduleSave();
-  onViewChanged(false);
 }
 
 // ---------- IndexedDB(状态+整局历史) ----------

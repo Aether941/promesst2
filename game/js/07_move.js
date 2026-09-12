@@ -46,7 +46,6 @@ function tryMove(x, y) {
     game.player_timer = 80;
     game.steps++;
     startAnim(fx0, fy0);
-    onViewChanged(false);
     return ret("move", "调试穿墙:直接移动到 (" + game.px + "," + game.py + ")");
   }
 
@@ -259,7 +258,6 @@ function tryMove(x, y) {
   if (got_wand) {
     ckptSnap = buildSnap();
   } // 魔杖快照(菜单恢复用)
-  onViewChanged(false);
   return ret(
     "move",
     "移动 → (" +

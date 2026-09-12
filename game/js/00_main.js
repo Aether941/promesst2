@@ -67,7 +67,6 @@ function loop(now) {
   if (now - lastRender >= renderInterval) {
     lastRender = now;
     render();
-    if (mainMode === "game" && follow) centerPlayer();
   }
   requestAnimationFrame(loop);
 }

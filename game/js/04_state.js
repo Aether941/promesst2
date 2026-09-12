@@ -95,7 +95,6 @@ function reset() {
   lightCache = [null, null];
   lightDirty = true;
   lastSnap = buildSnap();
-  onViewChanged(true);
 }
 
 // 记录本次移动起点(仅用于跨世界缝判定)
