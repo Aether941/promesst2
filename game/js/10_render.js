@@ -138,6 +138,11 @@ let zoomK = 2,
   autoFit = true,
   follow = true,
   showGrid = false;
+// 调试开关:关闭后 getLightFlicker() 固定返回 1,光束不再闪烁。
+let lightFlickerEnabled = true;
+try {
+  lightFlickerEnabled = localStorage.getItem("promesst2.lightFlicker") !== "0";
+} catch (e) {}
 // 未缩放的单屏逻辑尺寸。
 const canvasSize = 384;
 
@@ -167,6 +172,7 @@ function kPx() {
  * @returns {number} 0.2 ~ 1.0 之间的亮度系数
  */
 function getLightFlicker() {
+  if (!lightFlickerEnabled) return 1;
   const cycle = Math.floor(animcycle / 16) * 32;
   let flicker = Math.abs(Math.sin(cycle / 100)) * 0.5 + 0.5;
   const a = Math.floor(cycle / 10);
@@ -259,7 +265,7 @@ function render() {
           let n = 0;
           for (let d = 0; d < 4; d++) if (lit.L[y][x][d] >= 0) n++;
           if (!n) continue;
-          const alpha = Math.min(0.42, 0.1 + 0.06 * n) / n;
+          const alpha = Math.min(0.42, 0.14 + 0.14 * n) / n;
           for (let d = 0; d < 4; d++) {
             const cc = lit.L[y][x][d];
             if (cc < 0) continue;
@@ -396,4 +402,9 @@ Object.defineProperty(globalThis, "showGrid", {
   configurable: true,
   get() { return showGrid; },
   set(value) { showGrid = value; },
+});
+Object.defineProperty(globalThis, "lightFlickerEnabled", {
+  configurable: true,
+  get() { return lightFlickerEnabled; },
+  set(value) { lightFlickerEnabled = value; },
 });

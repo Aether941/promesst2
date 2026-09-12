@@ -145,6 +145,14 @@ byId("ckSkipBoot").addEventListener("change", function (e) {
     localStorage.setItem("promesst2.skipLogoMenu", skipLogoMenu ? "1" : "0");
   } catch (e) {}
 });
+// 调试:开关光束闪烁(持久化到 localStorage)。
+byId("ckLightFlicker").checked = !!lightFlickerEnabled;
+byId("ckLightFlicker").addEventListener("change", function (e) {
+  lightFlickerEnabled = e.target.checked;
+  try {
+    localStorage.setItem("promesst2.lightFlicker", lightFlickerEnabled ? "1" : "0");
+  } catch (e) {}
+});
 byId("dbgWand").addEventListener("click", function () {
   cheatWand();
 });
