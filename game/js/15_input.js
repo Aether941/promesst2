@@ -97,7 +97,6 @@ byId("btnZi").addEventListener("click", function () {
   saveViewPrefs();
   resizeCanvas();
 });
-byId("btnResetZoom").addEventListener("click", resetZoom);
 byId("btnUndo").addEventListener("click", function () {
   if (mainMode === "game") {
     undo();

@@ -33,14 +33,6 @@ function saveViewPrefs() {
 }
 
 /**
- * 功能:重置为适配模式,让画布自动铺满可视区。
- */
-function resetZoom() {
-  autoFit = true;
-  resizeCanvas();
-  saveViewPrefs();
-}
-/**
  * 功能:根据适配/手动缩放模式调整 canvas 后备缓冲和 CSS 尺寸。
  */
 function resizeCanvas() {
@@ -97,7 +89,6 @@ globalThis.resizeCanvas = resizeCanvas;
 globalThis.centerPlayer = centerPlayer;
 globalThis.onViewChanged = onViewChanged;
 globalThis.saveViewPrefs = saveViewPrefs;
-globalThis.resetZoom = resetZoom;
 globalThis.stage = stage;
 Object.defineProperty(globalThis, "cssScale", {
   configurable: true,
