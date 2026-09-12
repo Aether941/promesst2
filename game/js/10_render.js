@@ -149,6 +149,36 @@ function kPx() {
 }
 
 /**
+ * 功能:按原版 draw_world 的算法计算光束微弱闪烁系数。
+ *
+ * 原版 main.c 在游戏模式下 animcycle 每逻辑帧会加两次:
+ *   L2439: animcycle += 16;
+ *   L2448: animcycle += eff_time(16);
+ * 等价于每 16ms 真实逻辑帧增加 32ms 动画时钟。
+ *
+ * 网页版早期直接使用 requestAnimationFrame 的真实 dt 累加 animcycle:
+ *   1) 速度约为原版游戏的一半;
+ *   2) rAF/限帧波动会让 sin 与取模突变采样不稳定,表现为时快时慢。
+ *
+ * 因此这里先把 animcycle 量化成原版游戏时钟:
+ *   cycle = floor(animcycle / 16) * 32
+ * 再用 cycle 完全照抄 main.c L1860-1869 的公式。
+ *
+ * @returns {number} 0.2 ~ 1.0 之间的亮度系数
+ */
+function getLightFlicker() {
+  const cycle = Math.floor(animcycle / 16) * 32;
+  let flicker = Math.abs(Math.sin(cycle / 100)) * 0.5 + 0.5;
+  const a = Math.floor(cycle / 10);
+  if (a % 130 === 0 || a % 217 === 0 || a % 252 === 0) flicker += 0.5;
+  if (a % 103 === 0 || a % 117 === 0 || a % 501 === 0) flicker *= 0.7;
+  if (a % 88 === 0 || a % 281 === 0) flicker *= 0.5;
+  if (flicker > 1) flicker = 1;
+  if (flicker < 0.2) flicker = 0.2;
+  return flicker;
+}
+
+/**
  * 功能:绘制当前整幅画面:地图、物体、光束、网格、玩家、结局层和 HUD。
  */
 function render() {
@@ -221,6 +251,7 @@ function render() {
     ensureLight();
     const lit = lightCache[z];
     if (lit) {
+      const flicker = getLightFlicker();
       // 1) 满格光束:每个有光的入射方向画一个满格贴图。
       for (y = 0; y < WH; y++)
         for (x = 0; x < WW; x++) {
@@ -232,7 +263,7 @@ function render() {
           for (let d = 0; d < 4; d++) {
             const cc = lit.L[y][x][d];
             if (cc < 0) continue;
-            ctx.globalAlpha = alpha;
+            ctx.globalAlpha = alpha * flicker;
             ctx.globalCompositeOperation = "lighter";
             ctx.drawImage(
               tintedCell(4 + (d & 1), 5, powers[cc]),
@@ -250,7 +281,7 @@ function render() {
       if (lit.end) {
         for (let i = 0; i < lit.end.length; i++) {
           const e = lit.end[i];
-          ctx.globalAlpha = 0.16;
+          ctx.globalAlpha = 0.16 * flicker;
           ctx.globalCompositeOperation = "lighter";
           ctx.drawImage(
             tintedCell(e.side, 5, powers[e.color]),
@@ -273,11 +304,11 @@ function render() {
           const pc2 = powers[o2.color];
           if (powered) {
             // 自己格子的半格贴图:o2.dir 正好对应 (0,5)~(3,5)。
-            ctx.globalAlpha = 0.16;
+            ctx.globalAlpha = 0.16 * flicker;
             ctx.globalCompositeOperation = "lighter";
             ctx.drawImage(tintedCell(o2.dir, 5, pc2), x * K, y * K, K, K);
             // 亮色四角星。
-            ctx.globalAlpha = 0.6;
+            ctx.globalAlpha = 0.6 * flicker;
             ctx.globalCompositeOperation = "lighter";
             ctx.drawImage(tintedCell(5, 2, pc2), x * K, y * K, K, K);
           } else {

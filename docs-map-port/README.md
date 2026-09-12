@@ -295,3 +295,34 @@ M1 静态(已具备)→ M2 移动/整图渲染 → M3 光束+能力+撤销骨架
 
 - `update()` 中 `if(!ch) return;` 会在**无输入时提前返回**,导致 `egg_timer` 永不累积、结局无法触发。已改为“无输入只跳过输入分发”,`egg_timer` 照 C L1322–1324 在每 tick 末尾累加。
 - 冒烟测试同时覆盖:Logo→菜单时序、菜单可用性、新游戏、移动/撤销、结局四阶段与结算页、存档 pack/restore 往返、无 IndexedDB 时的优雅降级(13/13 通过)。
+
+
+---
+
+## 14. 光束闪烁时钟说明(与 main.c 对齐)
+
+原版 `main.c` 的主循环传入固定步长:
+
+```c
+stbwingraph_MainLoop(loopmode, 0.016f);
+```
+
+而 `loopmode()` 中:
+
+- L2439: `animcycle += (uint)(dt * 1000);`   每帧 +16
+- L2448: 游戏模式下 `animcycle += eff_time;`    再 +16
+
+因此游戏内 `animcycle` 实际是 **每 16ms 逻辑帧 +32ms 动画时钟**。
+
+网页版早期直接使用 `requestAnimationFrame` 的真实 `dt` 只累加一次 `animcycle`,会产生两个问题:
+
+1. 闪烁速度约为原版游戏的一半;
+2. 帧率波动和渲染限帧会改变 sin/取模突变的采样节奏,看起来忽快忽慢。
+
+修复方式:
+
+```js
+const cycle = Math.floor(animcycle / 16) * 32;
+```
+
+再以 `cycle` 完全照抄 `main.c` L1860-1869 的闪烁公式。这样闪烁频率和节奏就与游戏模式下的原版 `animcycle` 对齐。
