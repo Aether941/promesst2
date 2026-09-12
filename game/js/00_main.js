@@ -19,8 +19,8 @@ import "./12_menu.js";
 import "./13_saves.js";
 import "./14_view.js";
 import "./15_input.js";
-// ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑;渲染可选 30/60/90/120FPS,默认60) ----------
-const FPS_OPTIONS = [30, 60, 90, 120];
+// ---------- 主循环(rAF + 16ms 步进;仅游戏模式推进逻辑;渲染可选 30/60/90/120/240/360FPS,默认60) ----------
+const FPS_OPTIONS = [30, 60, 90, 120, 240, 360];
 // 当前帧率对应的渲染间隔(ms)。
 let renderInterval = 1000 / 60;
 // 上一帧时间戳和 16ms 模拟 accumulator。
