@@ -6,6 +6,7 @@
 // ---------- 存档槽(3 槽 + 导出/导入) ----------
 let activeSlot = 1;
 let copySource = null;
+let slotRenderToken = 0;
 /**
  * 功能:返回存档槽 i 对应的存储键。
  * @param {*} i
@@ -157,7 +158,7 @@ function renderSlots() {
   // 实现:异步读取三个槽位,生成状态行和读取/保存/删除按钮。
   const host = byId("slotList");
   if (!host) return;
-  host.innerHTML = "";
+  const token = ++slotRenderToken;
   const jobs = [];
   for (let i = 1; i <= 3; i++)
     jobs.push(
@@ -166,6 +167,8 @@ function renderSlots() {
       }),
     );
   Promise.all(jobs).then(function (list) {
+    if (token !== slotRenderToken) return;
+    const frag = document.createDocumentFragment();
     list.forEach(function (d, idx) {
       const i = idx + 1,
         m = d && d.meta ? d.meta : null;
@@ -222,14 +225,16 @@ function renderSlots() {
         });
       });
       if (copySource === null) {
-        if (m) {
-          mk("复制", function () {
-            copySource = i;
-            renderSlots();
-            byId("slotHint").textContent =
-              "已选中槽 " + i + " 作为复制源,请点击其他槽的「粘贴」。";
-          });
-        }
+        mk("复制", function () {
+          if (!m) {
+            byId("slotHint").textContent = "槽 " + i + " 为空,不能作为复制源。";
+            return;
+          }
+          copySource = i;
+          renderSlots();
+          byId("slotHint").textContent =
+            "已选中槽 " + i + " 作为复制源,请点击其他槽的「粘贴」。";
+        });
       } else if (copySource === i) {
         mk("取消", function () {
           copySource = null;
@@ -251,8 +256,9 @@ function renderSlots() {
           byId("slotHint").textContent = "已删除槽 " + i + "。";
         });
       });
-      host.appendChild(row);
+      frag.appendChild(row);
     });
+    host.replaceChildren(frag);
   });
 }
 /**
