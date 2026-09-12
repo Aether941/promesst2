@@ -8,9 +8,14 @@
  * 功能:绘制 rover 彩虹/气泡、闪白和 YOU WIN 结局文字。
  * @param {*} g
  * @param {*} k
+ * @param {number} [camX=0] 房间视角相机在世界中的格偏移 X
+ * @param {number} [camY=0] 房间视角相机在世界中的格偏移 Y
  */
-function drawEndingOverlay(g, k) {
+function drawEndingOverlay(g, k, camX, camY) {
   // 实现:先画 rover 彩虹与气泡,再按 egg_timer 阶段绘制结局画面。
+  // 世界内叠层按相机偏移绘制;全屏闪白/结局文字仍使用屏幕坐标。
+  camX = camX || 0;
+  camY = camY || 0;
   const z = game.pz,
     K = CELL * k;
   let rover = null,
@@ -22,6 +27,9 @@ function drawEndingOverlay(g, k) {
         rover = {x: x, y: y};
         break;
       }
+  // rover 在当前视角画布中的左上角坐标;供彩虹/气泡等世界内叠层使用。
+  const rx = rover ? (rover.x - camX) * K : 0,
+    ry = rover ? (rover.y - camY) * K : 0;
 
   // 被喂饱的 rover“蜥蜴化”:彩虹光环(近似原版 L2035–2069)
   if (rover && game.egg_timer > 0) {
@@ -30,7 +38,7 @@ function drawEndingOverlay(g, k) {
     g.globalCompositeOperation = "lighter";
     g.globalAlpha = 0.3 + 0.35 * pulse;
     g.fillStyle = "hsl(" + ((animcycle / 8) % 360) + ",85%,60%)";
-    g.fillRect(rover.x * K - K * 0.3, rover.y * K - K * 0.3, K * 1.6, K * 1.6);
+    g.fillRect(rx - K * 0.3, ry - K * 0.3, K * 1.6, K * 1.6);
     g.restore();
   }
   // 气泡文字:照原版 L2144–2191(仅当 rover 在 z0 的 (2,3) 房间且已开始喂食)
@@ -57,16 +65,16 @@ function drawEndingOverlay(g, k) {
       g.save();
       g.fillStyle = "rgba(0,0,0,0.55)";
       g.fillRect(
-        rover.x * K + K / 2 - w / 2 - 3,
-        rover.y * K - size * 10 - 3,
+        rx + K / 2 - w / 2 - 3,
+        ry - size * 10 - 3,
         w + 6,
         size * 9 + 6,
       );
       g.fillStyle = "#ffffff";
       drawBmpText(
         g,
-        rover.x * K + K / 2 - w / 2,
-        rover.y * K - size * 10,
+        rx + K / 2 - w / 2,
+        ry - size * 10,
         size,
         text,
         1,
@@ -135,6 +143,8 @@ const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
 // 网格显示开关。
 let showGrid = false;
+// 视角模式:"map" 为整幅大地图,"room" 为当前房间。
+let viewMode = "map";
 // 调试开关:关闭后 getLightFlicker() 固定返回 1,光束不再闪烁。
 let lightFlickerEnabled = true;
 try {
@@ -144,10 +154,10 @@ try {
 const canvasSize = WW * CELL;
 
 /**
- * 功能:返回当前每格像素大小(由画布后备缓冲尺寸反推)。
+ * 功能:返回当前每格像素大小(按当前视角可见格数由画布后备缓冲尺寸反推)。
  */
 function kPx() {
-  return cv.width / WW;
+  return cv.width / (viewMode === "room" ? SX : WW);
 }
 
 /**
@@ -187,11 +197,37 @@ function getLightFlicker() {
 function render() {
   // 实现:依次绘制地图瓦片、物体、光束、网格、玩家、结局层和 HUD。
   if (!world || !img) return;
+  // 玩家动画位置:只做最后一格滑入。提前计算,既供绘制使用,也供房间视角选择相机。
+  let drawX = game.px,
+    drawY = game.py;
+  if (animMove && game.player_timer > 0) {
+    const bigJump =
+      Math.abs(animFromX - game.px) > 1 || Math.abs(animFromY - game.py) > 1;
+    const behindIsFrom =
+      wrapX(game.px - XD[game.pdir]) === animFromX &&
+      wrapY(game.py - YD[game.pdir]) === animFromY;
+    if (!(bigJump && behindIsFrom)) {
+      // 跨世界缝:瞬移,不做滑入
+      const slide = game.player_timer / 80; // 80 -> 0,偏移 1 格 -> 0 格
+      drawX = game.px - XD[game.pdir] * slide;
+      drawY = game.py - YD[game.pdir] * slide;
+    }
+  }
+  // 房间视角按实际绘制位置所在房间取景;世界接缝外时回退到逻辑坐标。
+  let viewPx = drawX,
+    viewPy = drawY;
+  if (viewPx < 0 || viewPx >= WW) viewPx = game.px;
+  if (viewPy < 0 || viewPy >= WH) viewPy = game.py;
   const z = game.pz,
     K = kPx(),
-    k = K / CELL;
+    k = K / CELL,
+    roomView = viewMode === "room",
+    camX = roomView ? ((viewPx / SX) | 0) * SX : 0,
+    camY = roomView ? ((viewPy / SY) | 0) * SY : 0;
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.imageSmoothingEnabled = false;
+  ctx.save();
+  ctx.translate(-camX * K, -camY * K);
 
   let y, x, i;
   for (y = 0; y < WH; y++)
@@ -346,21 +382,6 @@ function render() {
   // 玩家:照原版 draw_world L2004–2009,只做“最后一格”的滑入
   //   epx = -16*xdir[pdir]*(player_timer/80) → 画在“目标格往回一格”处,随时钟滑入目标格。
   //   这样双步/远行跨多格时不会拉一条长线滑过墙体(原版同样只滑最后一格)。
-  let drawX = game.px,
-    drawY = game.py;
-  if (animMove && game.player_timer > 0) {
-    const bigJump =
-      Math.abs(animFromX - game.px) > 1 || Math.abs(animFromY - game.py) > 1;
-    const behindIsFrom =
-      wrapX(game.px - XD[game.pdir]) === animFromX &&
-      wrapY(game.py - YD[game.pdir]) === animFromY;
-    if (!(bigJump && behindIsFrom)) {
-      // 跨世界缝:瞬移,不做滑入
-      const slide = game.player_timer / 80; // 80→0,偏移 1 格 → 0 格
-      drawX = game.px - XD[game.pdir] * slide;
-      drawY = game.py - YD[game.pdir] * slide;
-    }
-  }
   const dxs = game.pdir;
   ctx.globalAlpha = 0.9;
   ctx.drawImage(cellFrom(dxs, 6), drawX * K, drawY * K, K, K);
@@ -369,7 +390,8 @@ function render() {
   ctx.strokeStyle = "rgba(255,212,121,0.9)";
   ctx.lineWidth = Math.max(2, k * 0.4);
   ctx.strokeRect(drawX * K + 1, drawY * K + 1, K - 2, K - 2);
-  drawEndingOverlay(ctx, k);
+  ctx.restore();
+  drawEndingOverlay(ctx, k, camX, camY);
   refreshHud();
 }
 
@@ -381,6 +403,11 @@ globalThis.cv = cv;
 globalThis.ctx = ctx;
 globalThis.canvasSize = canvasSize;
 
+Object.defineProperty(globalThis, "viewMode", {
+  configurable: true,
+  get() { return viewMode; },
+  set(value) { viewMode = value; },
+});
 Object.defineProperty(globalThis, "showGrid", {
   configurable: true,
   get() { return showGrid; },

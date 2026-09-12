@@ -88,6 +88,11 @@ byId("btnUndo").addEventListener("click", function () {
 byId("btnMenu").addEventListener("click", function () {
   setMode("menu");
 });
+byId("btnView").addEventListener("click", function () {
+  viewMode = viewMode === "room" ? "map" : "room";
+  byId("btnView").textContent = "视角:" + (viewMode === "room" ? "房间" : "大地图");
+  render();
+});
 byId("btnCreditsBack").addEventListener("click", function () {
   setMode("menu");
 });
