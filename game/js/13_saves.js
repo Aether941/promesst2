@@ -5,6 +5,7 @@
 
 // ---------- 存档槽(3 槽 + 导出/导入) ----------
 let activeSlot = 1;
+let copySource = null;
 /**
  * 功能:返回存档槽 i 对应的存储键。
  * @param {*} i
@@ -65,6 +66,7 @@ function switchSlot(i) {
   return idbGet(slotKey(i))
     .then(function (dd) {
       setActiveSlot(i);
+      copySource = null;
       if (dd && dd.g) {
         restoreSave(dd);
         gameStarted = true;
@@ -79,6 +81,47 @@ function switchSlot(i) {
     })
     .catch(function (e) {
       byId("slotHint").textContent = "切换失败:" + e.message;
+    });
+}
+/**
+ * 功能:读取指定槽的存档;当前槽优先取内存快照,保证未落盘的自动保存也能复制。
+ * @param {*} i
+ */
+function readSlotData(i) {
+  if (i === activeSlot && globalThis.lastSnap) return Promise.resolve(packSave());
+  return idbGet(slotKey(i));
+}
+/**
+ * 功能:把源槽存档复制到目标槽;若目标是当前自动保存槽,同时把内存进度切到复制后的存档。
+ * @param {*} src
+ * @param {*} dst
+ */
+function pasteSlot(src, dst) {
+  return readSlotData(src)
+    .then(function (data) {
+      if (!data || !data.g) {
+        copySource = null;
+        renderSlots();
+        byId("slotHint").textContent = "槽 " + src + " 没有可复制的存档。";
+        return;
+      }
+      if (data.meta) data.meta.slot = dst;
+      if (dst === activeSlot && globalThis.saveTimer) {
+        clearTimeout(globalThis.saveTimer);
+        globalThis.saveTimer = null;
+      }
+      return idbPut(slotKey(dst), data).then(function () {
+        if (dst === activeSlot) {
+          restoreSave(data);
+          gameStarted = true;
+        }
+        copySource = null;
+        renderSlots();
+        byId("slotHint").textContent = "已从槽 " + src + " 复制到槽 " + dst + "。";
+      });
+    })
+    .catch(function (e) {
+      byId("slotHint").textContent = "复制失败:" + e.message;
     });
 }
 /**
@@ -127,7 +170,10 @@ function renderSlots() {
       const i = idx + 1,
         m = d && d.meta ? d.meta : null;
       const row = document.createElement("div");
-      row.className = "slot" + (i === activeSlot ? " active" : "");
+      row.className =
+        "slot" +
+        (i === activeSlot ? " active" : "") +
+        (i === copySource ? " copying" : "");
       const info = document.createElement("div");
       info.className = "info";
       info.innerHTML =
@@ -135,6 +181,7 @@ function renderSlots() {
         i +
         "</b>" +
         (i === activeSlot ? " (当前)" : "") +
+        (i === copySource ? " [复制源]" : "") +
         " — " +
         (m
           ? "保存于 " +
@@ -153,10 +200,11 @@ function renderSlots() {
        * @param {*} label
        * @param {*} fn
        */
-      function mk(label, fn) {
+      function mk(label, fn, disabled) {
         const b = document.createElement("button");
         b.className = "btn";
         b.textContent = label;
+        b.disabled = !!disabled;
         b.addEventListener("click", fn);
         row.appendChild(b);
       }
@@ -173,22 +221,31 @@ function renderSlots() {
           setMode("game");
         });
       });
-      mk("保存", function () {
-        saveToSlot(i)
-          .then(function (ok) {
+      if (copySource === null) {
+        if (m) {
+          mk("复制", function () {
+            copySource = i;
             renderSlots();
-            byId("slotHint").textContent = ok
-              ? "已保存到槽 " + i + (activeSlot !== i ? "(当前槽仍为 " + activeSlot + ")" : "") + "。"
-              : "没有可保存的进度。";
-          })
-          .catch(function (e) {
-            byId("slotHint").textContent = "保存失败:" + e.message;
+            byId("slotHint").textContent =
+              "已选中槽 " + i + " 作为复制源,请点击其他槽的「粘贴」。";
           });
-      });
+        }
+      } else if (copySource === i) {
+        mk("取消", function () {
+          copySource = null;
+          renderSlots();
+          byId("slotHint").textContent = "已取消复制。";
+        });
+      } else {
+        mk("粘贴", function () {
+          pasteSlot(copySource, i);
+        });
+      }
       mk("设为当前", function () {
         switchSlot(i);
       });
       mk("删除", function () {
+        if (copySource === i) copySource = null;
         idbPut(slotKey(i), null).then(function () {
           renderSlots();
           byId("slotHint").textContent = "已删除槽 " + i + "。";
