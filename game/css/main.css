@@ -1,0 +1,8 @@
+/* PROMESST 2 网页版移植 - CSS 总入口
+   只由 index.html 引入本文件，其余样式按顺序 @import。 */
+
+@import url("./00_base.css");
+@import url("./01_layout.css");
+@import url("./02_sidebar.css");
+@import url("./03_screens.css");
+@import url("./04_responsive.css");
