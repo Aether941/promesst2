@@ -46,7 +46,8 @@ function tryMove(x, y) {
     game.player_timer = 80;
     game.steps++;
     startAnim(fx0, fy0);
-    return ret("move", "调试穿墙:直接移动到 (" + game.px + "," + game.py + ")");
+    if (D) D.landing = "(" + game.px + "," + game.py + ") Z" + game.pz;
+    return ret("move", "调试穿墙:移动成功");
   }
 
   // 站在墙内:无绿光禁止任何移动(只能撤销),否则绿光穿墙后可能“卡”在墙里还能走出来
@@ -102,9 +103,7 @@ function tryMove(x, y) {
         " 连续=" +
         cnt +
         " 墙格=" +
-        walls +
-        " 落点=" +
-        (tt ? "(" + tt.x + "," + tt.y + ")" : "无"),
+        walls,
     );
   }
 
@@ -147,7 +146,7 @@ function tryMove(x, y) {
       if (kind === "block")
         return ret(
           false,
-          "被挡:落点 " + dbgCellDesc(z, cx, cy) + " → " + dbgBlockReason(z, cx, cy, abilities),
+          "被挡: " + dbgBlockReason(z, cx, cy, abilities),
         );
       if (kind === "door") {
         setUsed(POW_doors);
@@ -156,7 +155,8 @@ function tryMove(x, y) {
         game.pdir = proposed_pdir;
         lightDirty = true;
         pauseInput();
-        return ret("open", "开门(落点) " + dbgCellDesc(z, cx, cy) + " → open_door,人不动");
+        if (D) D.landing = "(" + cx + "," + cy + ") Z" + game.pz;
+        return ret("open", "开门 open_door,人不动");
       }
       if (kind === "stone") {
         setUsed(POW_destroy);
@@ -165,13 +165,12 @@ function tryMove(x, y) {
         game.pdir = proposed_pdir;
         lightDirty = true;
         pauseInput();
-        return ret("destroy", "碎石(落点) " + dbgCellDesc(z, cx, cy) + " → 清空,人不动");
+        if (D) D.landing = "(" + cx + "," + cy + ") Z" + game.pz;
+        return ret("destroy", "碎石 清空,人不动");
       }
       if (world.tile[z][cy][cx] === T.wall) {
         setUsed(POW_walls);
-        dbgAdd(D, "【落点】" + dbgCellDesc(z, cx, cy) + " → 墙,用绿光穿墙(消耗绿光)");
-      } else {
-        dbgAdd(D, "【落点】" + dbgCellDesc(z, cx, cy) + " → 判定=" + kind);
+        dbgAdd(D, "【穿墙】使用绿光通过墙体");
       }
       gx = cx;
       gy = cy;
@@ -179,10 +178,7 @@ function tryMove(x, y) {
   } else {
     const kindT = cellKind(z, gx, gy, abilities); // cellKind(列,行):gx=列,gy=行
     if (kindT === "block")
-      return ret(
-        false,
-        "被挡:远行落点 " + dbgCellDesc(z, gx, gy) + " → " + dbgBlockReason(z, gx, gy, abilities),
-      );
+      return ret(false, "被挡: " + dbgBlockReason(z, gx, gy, abilities));
     if (kindT === "door") {
       setUsed(POW_doors);
       game.ability_flag = used;
@@ -190,7 +186,8 @@ function tryMove(x, y) {
       game.pdir = proposed_pdir;
       lightDirty = true;
       pauseInput();
-      return ret("open", "开门(远行落点) " + dbgCellDesc(z, gx, gy) + " → open_door,人不动");
+      if (D) D.landing = "(" + gx + "," + gy + ") Z" + game.pz;
+      return ret("open", "开门 open_door,人不动");
     }
     if (kindT === "stone") {
       setUsed(POW_destroy);
@@ -199,9 +196,9 @@ function tryMove(x, y) {
       game.pdir = proposed_pdir;
       lightDirty = true;
       pauseInput();
-      return ret("destroy", "碎石(远行落点) " + dbgCellDesc(z, gx, gy) + " → 清空,人不动");
+      if (D) D.landing = "(" + gx + "," + gy + ") Z" + game.pz;
+      return ret("destroy", "碎石 清空,人不动");
     }
-    dbgAdd(D, "远行落点 " + dbgCellDesc(z, gx, gy) + " → 判定=" + kindT);
   }
 
   // ---- 落地(共用) ----
@@ -230,14 +227,10 @@ function tryMove(x, y) {
   if (got_wand) {
     ckptSnap = buildSnap();
   } // 魔杖快照(菜单恢复用)
+  if (D) D.landing = "(" + game.px + "," + game.py + ") Z" + game.pz;
   return ret(
     "move",
-    "移动 → (" +
-      game.px +
-      "," +
-      game.py +
-      ") Z" +
-      game.pz +
+    "移动成功" +
       (travel ? " [紫光远行]" : stepN > 1 ? " [橙光双步×" + stepN + "]" : "") +
       (nz !== z ? " [楼梯切层]" : "") +
       (got_wand ? " [拾取魔杖]" : ""),

@@ -128,6 +128,7 @@ function dbgStart(x, y, z) {
         " flag=0x" +
         game.ability_flag.toString(16),
     ],
+    landing: "无",
   };
 }
 /**
@@ -145,6 +146,7 @@ function dbgAdd(D, s) {
  */
 function dbgFinish(D, desc) {
   if (!D) return;
+  D.lines.push("【落点】" + D.landing);
   D.lines.push("【当前光】" + dbgPlayerLightText());
   D.lines.push("【结果】" + desc);
   const text = D.lines.join("\n");
