@@ -105,7 +105,15 @@
   color: #fff;
 }
 .slot.active {
-  background: rgba(176, 124, 255, 0.09);
+  background: rgba(176, 124, 255, 0.22);
+  border-radius: 8px;
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 0 0 1px rgba(176, 124, 255, 0.45),
+    0 0 18px rgba(176, 124, 255, 0.18);
+}
+.slot.active .info {
+  color: #e8edf7;
 }
 .row {
   display: flex;

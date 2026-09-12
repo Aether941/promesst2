@@ -40,6 +40,48 @@ function setActiveSlot(i) {
   } catch (e) {}
 }
 /**
+ * 功能:把当前进度保存到指定槽,但不改变当前激活槽。
+ * @param {*} i
+ */
+function saveToSlot(i) {
+  if (!globalThis.DB || !globalThis.lastSnap) return Promise.resolve(false);
+  const prev = activeSlot;
+  activeSlot = i;
+  let payload;
+  try {
+    payload = packSave();
+  } finally {
+    activeSlot = prev;
+  }
+  return idbPut(slotKey(i), payload).then(function () {
+    return true;
+  });
+}
+/**
+ * 功能:切换当前存档槽;有存档就读取,空档则重置为空游戏状态。
+ * @param {*} i
+ */
+function switchSlot(i) {
+  return idbGet(slotKey(i))
+    .then(function (dd) {
+      setActiveSlot(i);
+      if (dd && dd.g) {
+        restoreSave(dd);
+        gameStarted = true;
+        byId("slotHint").textContent = "已切换到槽 " + i + "。";
+      } else {
+        reset();
+        gameStarted = false;
+        clearedFlag = false;
+        byId("slotHint").textContent = "槽 " + i + " 为空,已切换为空档。";
+      }
+      renderSlots();
+    })
+    .catch(function (e) {
+      byId("slotHint").textContent = "切换失败:" + e.message;
+    });
+}
+/**
  * 功能:把时间戳格式化为 YYYY-MM-DD HH:mm;0 返回 。
  * @param {*} ms
  */
@@ -131,19 +173,20 @@ function renderSlots() {
           setMode("game");
         });
       });
-      mk("保存到此处", function () {
-        const prev = activeSlot;
-        setActiveSlot(i);
-        saveToDB().then(function () {
-          renderSlots();
-          byId("slotHint").textContent =
-            "已保存到槽 " + i + (prev !== i ? "(当前槽已切换)" : "") + "。";
-        });
+      mk("保存", function () {
+        saveToSlot(i)
+          .then(function (ok) {
+            renderSlots();
+            byId("slotHint").textContent = ok
+              ? "已保存到槽 " + i + (activeSlot !== i ? "(当前槽仍为 " + activeSlot + ")" : "") + "。"
+              : "没有可保存的进度。";
+          })
+          .catch(function (e) {
+            byId("slotHint").textContent = "保存失败:" + e.message;
+          });
       });
       mk("设为当前", function () {
-        setActiveSlot(i);
-        renderSlots();
-        byId("slotHint").textContent = "当前槽 = " + i + "(自动存档将写入此槽)。";
+        switchSlot(i);
       });
       mk("删除", function () {
         idbPut(slotKey(i), null).then(function () {
@@ -196,6 +239,8 @@ function importSave(file) {
 globalThis.slotKey = slotKey;
 globalThis.loadActiveSlot = loadActiveSlot;
 globalThis.setActiveSlot = setActiveSlot;
+globalThis.saveToSlot = saveToSlot;
+globalThis.switchSlot = switchSlot;
 globalThis.fmtTime = fmtTime;
 globalThis.renderSlots = renderSlots;
 globalThis.exportSave = exportSave;

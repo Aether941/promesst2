@@ -322,9 +322,11 @@ function saveToDB() {
  */
 function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
+  const slot = typeof globalThis.activeSlot === "number" ? globalThis.activeSlot : 1;
   saveTimer = setTimeout(function () {
     saveTimer = null;
-    saveToDB();
+    if (typeof globalThis.saveToSlot === "function") globalThis.saveToSlot(slot);
+    else saveToDB();
   }, 800);
 }
 // 读档(返回存档对象或 null)
