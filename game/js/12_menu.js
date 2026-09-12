@@ -59,8 +59,18 @@ function refreshMenu() {
   if (!host) return;
   const en = menuEnabled(),
     ch = host.children;
+  // Disabled items are hidden, matching the original menu renderer.
+  if (!en[menuSel]) {
+    for (let i = 0; i < en.length; i++) {
+      if (en[i]) {
+        menuSel = i;
+        break;
+      }
+    }
+  }
   for (let i = 0; i < ch.length; i++) {
     ch[i].disabled = !en[i];
+    ch[i].style.display = en[i] ? "" : "none";
     ch[i].className = i === menuSel ? "sel" : "";
   }
   byId("menuNote").textContent = gameStarted ? "" : "当前没有存档:请选择“新游戏”开始。";
