@@ -9,7 +9,7 @@
   justify-content: center;
   flex-direction: column;
   gap: 14px;
-  background: rgba(6, 8, 14, 0.93);
+  background: var(--bg);
   z-index: 50;
   padding: 24px;
 }
@@ -28,7 +28,8 @@
   text-align: center;
 }
 #scrLogo img {
-  width: min(420px, 70vw);
+  height: min(72vh, 52vw);
+  width: auto;
   image-rendering: pixelated;
 }
 #scrMenu .title {

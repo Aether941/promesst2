@@ -19,7 +19,7 @@ const MENU = [
   { id: "new", label: "新游戏", sub: "从头开始(清空撤销历史)" },
   { id: "slots", label: "存档管理", sub: "3 个存档槽 / 导出导入" },
   { id: "credits", label: "Credits", sub: "原作者与贡献者" },
-  { id: "quit", label: "保存并回到标题", sub: "保存当前进度" },
+  { id: "quit", label: "保存并退出", sub: "保存后从头播放 SSS 片头" },
 ];
 /**
  * 功能:返回菜单各项是否可用。
@@ -139,7 +139,8 @@ function activateMenu() {
     setMode("credits");
   } else if (id === "quit") {
     scheduleSave();
-    setMode("menu");
+    logoTime = 1500;
+    setMode("logo");
   }
 }
 /**
