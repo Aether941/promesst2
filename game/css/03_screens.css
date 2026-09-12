@@ -16,6 +16,9 @@
 .screen.on {
   display: flex;
 }
+#scrLogo {
+  background: #000;
+}
 .screen h2 {
   margin: 0;
   font-size: 26px;
