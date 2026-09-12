@@ -141,7 +141,7 @@ function dbgStart(x, y, z) {
 function dbgFinish(D, desc) {
   if (!D) return;
   D.lines.push("【落点】" + D.landing);
-  D.lines.push("【当前光】" + dbgPlayerLightText());
+  D.lines.push("【光束】" + dbgPlayerLightText());
   D.lines.push(dbgPlayerAbilityText());
   D.lines.push("【结果】" + desc);
   const text = D.lines.join("\n");

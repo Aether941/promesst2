@@ -19,6 +19,8 @@ const hud = {
 // 能力名:未使用过显示颜色名,使用过显示能力名(照原版 HUD L2294-2305)。
 const ABILITY_COLOR_NAMES = { 0: "红", 1: "绿", 3: "橙", 4: "黄", 5: "紫" };
 const ABILITY_ACTION_NAMES = { 0: "开门", 1: "穿透", 3: "双格", 4: "粉碎", 5: "端点" };
+// 状态栏朝向:0=E/右,1=N/上,2=W/左,3=S/下。
+const FACE_CN = ["右", "上", "左", "下"];
 /**
  * 功能:刷新 HUD 状态和能力灯;通过 hud 缓存避免重复写 DOM。
  */
@@ -32,9 +34,9 @@ function refreshHud() {
   const zs = "Z" + z,
     xys = "(" + x + "," + y + ")",
     rs = "(" + rx + "," + ry + ")",
-    fs = DIRNAME[game.pdir],
+    fs = FACE_CN[game.pdir],
     st = String(game.steps),
-    cs = String(game.num_gems);
+    cs = game.num_gems + "/" + MAX_GEMS;
   if (hud.z !== zs) {
     hud.z = zs;
     byId("bz").textContent = zs;
@@ -64,7 +66,7 @@ function refreshHud() {
     hud.wand = ws;
     byId("bwand").textContent = ws;
   }
-  const gs = game.gems_stored >= 0 ? game.gems_stored + "/" + MAX_GEMS : "—";
+  const gs = (game.gems_stored >= 0 ? game.gems_stored : 0) + "/" + MAX_GEMS;
   if (hud.gems !== gs) {
     hud.gems = gs;
     byId("bgems").textContent = gs;

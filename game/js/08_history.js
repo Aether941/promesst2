@@ -20,6 +20,7 @@ function pState() {
     py: game.py,
     pz: game.pz,
     pdir: game.pdir,
+    steps: game.steps,
     flag: game.ability_flag,
     gems: game.num_gems,
     fed: game.gems_stored,
@@ -43,6 +44,7 @@ function applyP(p) {
   game.py = p.py;
   game.pz = p.pz;
   game.pdir = p.pdir;
+  if (typeof p.steps === "number") game.steps = p.steps;
   game.ability_flag = p.flag;
   game.num_gems = p.gems;
   game.gems_stored = p.fed;
@@ -361,6 +363,7 @@ function restoreSave(d) {
   // 实现:先 reset 到干净世界,再应用存档快照、历史和通关标记。
   reset(); // 先建一份干净的底层(解析+默认)
   applySnap(d.g);
+  if (d.meta && typeof d.meta.steps === "number") game.steps = d.meta.steps;
   HISTORY = (d.h || []).slice();
   ckptSnap = d.ck || null;
   clearedFlag = !!(d.meta && d.meta.cleared);

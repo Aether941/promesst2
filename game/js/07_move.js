@@ -210,6 +210,7 @@ function snapshotState() {
     py: game.py,
     pz: game.pz,
     pdir: game.pdir,
+    steps: game.steps,
     ability_flag: game.ability_flag,
     num_gems: game.num_gems,
     gems_stored: game.gems_stored,
