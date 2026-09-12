@@ -37,7 +37,7 @@ function computePowers() {
  * @param {*} t
  */
 function cellFrom(s, t) {
-  let key = "c_" + s + "_" + t,
+  let key = `c_${s}_${t}`,
     c = tileCache[key];
   if (!c) {
     c = document.createElement("canvas");
@@ -55,7 +55,7 @@ function cellFrom(s, t) {
  * @param {*} color
  */
 function tintedCell(s, t, color) {
-  const key = s + "_" + t + "_" + color[0] + "_" + color[1] + "_" + color[2];
+  const key = `${s}_${t}_${color[0]}_${color[1]}_${color[2]}`;
   let c = tintCache[key];
   if (!c) {
     c = document.createElement("canvas");
@@ -64,7 +64,7 @@ function tintedCell(s, t, color) {
     const g = c.getContext("2d");
     g.drawImage(cellFrom(s, t), 0, 0);
     g.globalCompositeOperation = "source-in";
-    g.fillStyle = "rgb(" + color[0] + "," + color[1] + "," + color[2] + ")";
+    g.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
     g.fillRect(0, 0, CELL, CELL);
     tintCache[key] = c;
   }

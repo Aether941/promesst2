@@ -40,7 +40,7 @@ function buildMenu() {
   host.innerHTML = "";
   MENU.forEach(function (it, i) {
     const b = document.createElement("button");
-    b.innerHTML = it.label + "<small>" + it.sub + "</small>";
+    b.innerHTML = `${it.label}<small>${it.sub}</small>`;
     b.addEventListener("click", function () {
       if (!b.disabled) {
         menuSel = i;
@@ -94,7 +94,7 @@ function moveMenuSel(dir) {
 function showScreen(name) {
   ["scrLogo", "scrMenu", "scrCredits", "scrSlots", "scrResult"].forEach(function (id) {
     const el = byId(id);
-    if (el) el.classList.toggle("on", id === "scr" + name);
+    if (el) el.classList.toggle("on", id === `scr${name}`);
   });
 }
 /**
@@ -163,8 +163,8 @@ function enterResult() {
   clearedFlag = true;
   HISTORY = []; // 原版通关不落档;这里只清历史并记录通关标记
   scheduleSave();
-  byId("resZaps").textContent = "USED " + game.num_zaps + " ZAPS";
-  byId("resFed").textContent = "已喂宝石 " + game.gems_stored + "/" + MAX_GEMS;
+  byId("resZaps").textContent = `USED ${game.num_zaps} ZAPS`;
+  byId("resFed").textContent = `已喂宝石 ${game.gems_stored}/${MAX_GEMS}`;
   setMode("result");
 }
 

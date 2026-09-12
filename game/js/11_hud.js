@@ -31,12 +31,12 @@ function refreshHud() {
     y = game.py;
   const rx = (x / SX) | 0,
     ry = (y / SY) | 0;
-  const zs = "Z" + z,
-    xys = "(" + x + "," + y + ")",
-    rs = "(" + rx + "," + ry + ")",
+  const zs = `Z${z}`,
+    xys = `(${x},${y})`,
+    rs = `(${rx},${ry})`,
     fs = FACE_CN[game.pdir],
     st = String(game.steps),
-    cs = game.num_gems + "/" + MAX_GEMS;
+    cs = `${game.num_gems}/${MAX_GEMS}`;
   if (hud.z !== zs) {
     hud.z = zs;
     byId("bz").textContent = zs;
@@ -66,7 +66,7 @@ function refreshHud() {
     hud.wand = ws;
     byId("bwand").textContent = ws;
   }
-  const gs = (game.gems_stored >= 0 ? game.gems_stored : 0) + "/" + MAX_GEMS;
+  const gs = `${game.gems_stored >= 0 ? game.gems_stored : 0}/${MAX_GEMS}`;
   if (hud.gems !== gs) {
     hud.gems = gs;
     byId("bgems").textContent = gs;

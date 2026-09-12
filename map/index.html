@@ -329,7 +329,7 @@ var tintCache={};  // key: s_t_rgb
 
 function getTintedCell(s,t,tint){
   if(!tint) return cellFrom(s,t);
-  var key=s+"_"+t+"_"+tint[0]+","+tint[1]+","+tint[2];
+  var key=`${s}_${t}_${tint[0]},${tint[1]},${tint[2]}`;
   var c=tintCache[key];
   if(c) return c;
   c=cellFrom(s,t);
@@ -337,14 +337,14 @@ function getTintedCell(s,t,tint){
   var cx=cc.getContext("2d");
   cx.drawImage(c,0,0);
   cx.globalCompositeOperation="multiply";
-  cx.fillStyle="rgb("+tint[0]+","+tint[1]+","+tint[2]+")";
+  cx.fillStyle=`rgb(${tint[0]},${tint[1]},${tint[2]})`;
   cx.fillRect(0,0,CELL,CELL);
   tintCache[key]=cc;
   return cc;
 }
 
 function cellFrom(s,t){
-  var key="c_"+s+"_"+t;
+  var key=`c_${s}_${t}`;
   var c=tintCache[key];
   if(c) return c;
   c=document.createElement("canvas"); c.width=CELL; c.height=CELL;
@@ -417,7 +417,7 @@ function render(ctx,k,map,opts){
       if(n){
         var a=Math.min(0.42, 0.10+0.06*n);
         ctx.globalAlpha=a;
-        ctx.fillStyle="rgb("+Math.round(r/n)+","+Math.round(gg/n)+","+Math.round(b/n)+")";
+        ctx.fillStyle=`rgb(${Math.round(r/n)},${Math.round(gg/n)},${Math.round(b/n)})`;
         ctx.globalCompositeOperation="lighter";
         ctx.fillRect(x*CELL*k, y*CELL*k, CELL*k, CELL*k);
         ctx.globalCompositeOperation="source-over";
@@ -430,7 +430,7 @@ function render(ctx,k,map,opts){
       if(o2.type===O.projector && pw && pw[Math.floor(y/SY)][Math.floor(x/SX)]){
         var pc2=powers[o2.color];
         ctx.globalAlpha=0.55; ctx.globalCompositeOperation="lighter";
-        ctx.fillStyle="rgb("+pc2[0]+","+pc2[1]+","+pc2[2]+")";
+        ctx.fillStyle=`rgb(${pc2[0]},${pc2[1]},${pc2[2]})`;
         var cx=x*CELL*k+CELL*k*0.28, cy=y*CELL*k+CELL*k*0.28, s2=CELL*k*0.44;
         ctx.fillRect(cx,cy,s2,s2);
         ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
@@ -483,8 +483,8 @@ function err(msg){
 function setSize(k){
   curK=k;
   canvas.width=WW*CELL*k; canvas.height=WH*CELL*k;
-  canvas.style.width=canvas.width+"px";
-  canvas.style.height=canvas.height+"px";
+  canvas.style.width=`${canvas.width}px`;
+  canvas.style.height=`${canvas.height}px`;
   redraw();
 }
 function redraw(){
@@ -513,15 +513,14 @@ function updateStats(){
     if(o.type===O.wand) counts["魔杖"]=(counts["魔杖"]||0)+1;
   }
   var s="";
-  Object.keys(counts).forEach(function(k){ s+=k+" "+counts[k]+"　"; });
-  document.getElementById("stats").textContent="本层统计: "+s;
+  Object.keys(counts).forEach(function(k){ s+=`${k} ${counts[k]}　`; });
+  document.getElementById("stats").textContent=`本层统计: ${s}`;
 }
 
 var infoBox=document.getElementById("info");
 function updateInfo(cellInfo){
   if(!cellInfo){
-    infoBox.innerHTML="(鼠标悬停查看格子信息) · 当前层 Z"+curZ+" · "+
-      (opts.beams?"光束:开":"光束:关");
+    infoBox.innerHTML=`(鼠标悬停查看格子信息) · 当前层 Z${curZ} · ${(opts.beams?"光束:开":"光束:关")}`;
     return;
   }
   infoBox.innerHTML=cellInfo;
@@ -534,14 +533,14 @@ function cellAt(mx,my){
   if(x<0||y<0||x>=WW||y>=WH) return null;
   var t=map.tile[z][y][x], o=map.obj[z][y][x];
   var rx=Math.floor(x/SX), ry=Math.floor(y/SY);
-  var tname=["墙","门","开门","地板","底座","碎石","箭头E","箭头N","箭头W","箭头S","楼梯","蛋"][t] || "蛋"+t;
-  var parts=["Z"+z+" · 格("+x+","+y+") · 房间("+rx+","+ry+") · 瓦片=<b>"+tname+"</b>"];
+  var tname=["墙","门","开门","地板","底座","碎石","箭头E","箭头N","箭头W","箭头S","楼梯","蛋"][t] || `蛋${t}`;
+  var parts=[`Z${z} · 格(${x},${y}) · 房间(${rx},${ry}) · 瓦片=<b>${tname}</b>`];
   if(o.type!==O.empty){
     var oname=["—","石块","宝石","投影器","魔杖","反射镜","rover"][o.type];
-    parts.push("物体=<b>"+oname+"</b>");
-    if(o.type===O.projector) parts.push("色=<b>"+CNAMES[o.color]+"</b> 向="+["E","N","W","S"][o.dir]);
-    if(o.type===O.rover)     parts.push("向="+["E","N","W","S"][o.dir]);
-    if(o.type===O.refl)      parts.push("姿="+(o.dir?"\\":"/"));
+    parts.push(`物体=<b>${oname}</b>`);
+    if(o.type===O.projector) parts.push(`色=<b>${CNAMES[o.color]}</b> 向=${["E","N","W","S"][o.dir]}`);
+    if(o.type===O.rover)     parts.push(`向=${["E","N","W","S"][o.dir]}`);
+    if(o.type===O.refl)      parts.push(`姿=${(o.dir?"\\":"/")}`);
   }
   return parts.join(" · ");
 }
@@ -564,7 +563,7 @@ document.getElementById("dl").addEventListener("click",function(){
   render(off.getContext("2d"),k,map,opts);
   var a=document.createElement("a");
   a.href=off.toDataURL("image/png");
-  a.download="promesst2-map-z"+curZ+"-"+WW+"x"+WH+".png";
+  a.download=`promesst2-map-z${curZ}-${WW}x${WH}.png`;
   a.click();
 });
 canvas.addEventListener("mousemove",function(e){
@@ -581,8 +580,7 @@ canvas.addEventListener("mouseleave",function(){ updateInfo(null); });
   var el=document.getElementById("projLegend");
   var html="";
   for(var i=0;i<LIGHTS.length;i++){
-    html+='<span style="color:'+CCOL[LIGHTDATA[i].c]+'"><code>'+LIGHTS.charAt(i)+"</code> "+
-          CNAMES[LIGHTDATA[i].c]+"·"+["E","N","W","S"][LIGHTDATA[i].d]+"</span>";
+    html+=`<span style="color:${CCOL[LIGHTDATA[i].c]}"><code>${LIGHTS.charAt(i)}</code> ${CNAMES[LIGHTDATA[i].c]}·${["E","N","W","S"][LIGHTDATA[i].d]}</span>`;
   }
   el.innerHTML=html;
 })();
@@ -590,9 +588,9 @@ canvas.addEventListener("mouseleave",function(){ updateInfo(null); });
 // ---------- 启动 ----------
 (function boot(){
   try{
-    if(!RAW || RAW.length!==24){ err("map-data.js 数据异常:期望 24 行,实际 "+(RAW?RAW.length:"未定义")+"。"); return; }
+    if(!RAW || RAW.length!==24){ err(`map-data.js 数据异常:期望 24 行,实际 ${(RAW?RAW.length:"未定义")}。`); return; }
     var bad=0; RAW.forEach(function(r,ri){ if(!r||r.length<2||r[0].length<27||r[1].length<27) bad++; });
-    if(bad){ err("map-data.js 有 "+bad+" 行长度异常(需要 >=27)。"); return; }
+    if(bad){ err(`map-data.js 有 ${bad} 行长度异常(需要 >=27)。`); return; }
 
     img=new Image();
     img.onload=function(){
@@ -605,11 +603,11 @@ canvas.addEventListener("mouseleave",function(){ updateInfo(null); });
         if(!map.player) err("警告:未找到出生点 p?");
         setSize(2);
         syncBtn();
-      }catch(ex){ err("渲染初始化失败:\n"+ex.message+"\n若通过 file:// 打开可能出现跨域限制,请用 Live Server 等本地服务器打开。"); }
+      }catch(ex){ err(`渲染初始化失败:\n${ex.message}\n若通过 file:// 打开可能出现跨域限制,请用 Live Server 等本地服务器打开。`); }
     };
     img.onerror=function(){ err("无法加载 ./sprites.png —— 请确认与 map-data.js 同目录。"); };
     img.src="./sprites.png";
-  }catch(ex){ err("启动失败:"+ex.message); }
+  }catch(ex){ err(`启动失败:${ex.message}`); }
 })();
 </script>
 </body>

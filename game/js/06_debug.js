@@ -57,11 +57,9 @@ function dbgTileName(z, cx, cy) {
 function dbgCellDesc(z, cx, cy) {
   let o = world.obj[z][cy][cx],
     extra = "";
-  if (o.type === O.projector) extra = "(色=" + CNAMES[o.color] + " 向=" + DIRNAME[o.dir] + ")";
-  else if (o.type === O.refl) extra = "(姿态=" + (o.dir ? "\\\\" : "/") + ")";
-  return (
-    "(" + cx + "," + cy + ") 贴图=" + dbgTileName(z, cx, cy) + " 物体=" + OBJ_CN[o.type] + extra
-  );
+  if (o.type === O.projector) extra = `(色=${CNAMES[o.color]} 向=${DIRNAME[o.dir]})`;
+  else if (o.type === O.refl) extra = `(姿态=${o.dir ? "\\\\" : "/"})`;
+  return `(${cx},${cy}) 贴图=${dbgTileName(z, cx, cy)} 物体=${OBJ_CN[o.type]}${extra}`;
 }
 /**
  * 功能:返回落点被阻挡的原因文本。
@@ -91,7 +89,7 @@ function dbgPlayerLightText() {
   const p = [];
   for (let i = 0; i < 4; i++) {
     const v = L.L[game.py][game.px][i];
-    p.push(["E", "N", "W", "S"][i] + "=" + (v >= 0 ? CNAMES[v] : "-"));
+    p.push(`${["E", "N", "W", "S"][i]}=${v >= 0 ? CNAMES[v] : "-"}`);
   }
   return p.join(" ");
 }
@@ -101,20 +99,7 @@ function dbgPlayerLightText() {
 function dbgPlayerAbilityText() {
   const ab = [0, 0, 0, 0, 0, 0, 0, 0];
   getAbilities(ab);
-  return (
-    "【能力】红" +
-    ab[0] +
-    " 绿" +
-    ab[1] +
-    " 黄" +
-    ab[4] +
-    " 橙" +
-    ab[3] +
-    " 紫" +
-    ab[5] +
-    " flag=0x" +
-    game.ability_flag.toString(16)
-  );
+  return `【能力】红${ab[0]} 绿${ab[1]} 黄${ab[4]} 橙${ab[3]} 紫${ab[5]} flag=0x${game.ability_flag.toString(16)}`;
 }
 /**
  * 功能:调试开启时构造一次移动判定报告头;否则返回 null。
@@ -126,10 +111,7 @@ function dbgStart(x, y, z) {
   if (!debugOn) return null;
   const dirName = x ? (x > 0 ? "→E 右" : "←W 左") : y > 0 ? "↓S 下" : "↑N 上";
   return {
-    lines: [
-      "【输入】" + dirName,
-      "【起点】" + dbgCellDesc(z, game.px, game.py),
-    ],
+    lines: [`【输入】${dirName}`, `【起点】${dbgCellDesc(z, game.px, game.py)}`],
     landing: "无",
   };
 }
@@ -140,10 +122,10 @@ function dbgStart(x, y, z) {
  */
 function dbgFinish(D, desc) {
   if (!D) return;
-  D.lines.push("【落点】" + D.landing);
-  D.lines.push("【光束】" + dbgPlayerLightText());
+  D.lines.push(`【落点】${D.landing}`);
+  D.lines.push(`【光束】${dbgPlayerLightText()}`);
   D.lines.push(dbgPlayerAbilityText());
-  D.lines.push("【结果】" + desc);
+  D.lines.push(`【结果】${desc}`);
   const text = D.lines.join("\n");
   dbgLog.push(text);
   if (dbgLog.length > DBG_LOG_MAX) dbgLog.shift();
@@ -151,7 +133,7 @@ function dbgFinish(D, desc) {
   dbgMsg = dbgLog[dbgLogCursor];
   updateDbgNavUI();
   try {
-    if (window.console) console.log("【PROMESST2 移动判定】\n" + text);
+    if (window.console) console.log(`【PROMESST2 移动判定】\n${text}`);
   } catch (e) {}
 }
 /**
@@ -162,7 +144,7 @@ function updateDbgNavUI() {
   const prev = byId("dbgPrev");
   const next = byId("dbgNext");
   const total = dbgLog.length;
-  if (index) index.textContent = total ? dbgLogCursor + 1 + "/" + total : "0/0";
+  if (index) index.textContent = total ? `${dbgLogCursor + 1}/${total}` : "0/0";
   if (prev) prev.disabled = total <= 0 || dbgLogCursor <= 0;
   if (next) next.disabled = total <= 0 || dbgLogCursor >= total - 1;
 }
@@ -203,12 +185,12 @@ function updateDebugChargeUI() {
   const feedPct = Math.round(feedCharge);
   if (wandPct !== chargeUiShown.wand) {
     const wandBtn = byId("dbgWand");
-    if (wandBtn) wandBtn.style.setProperty("--charge", wandPct + "%");
+    if (wandBtn) wandBtn.style.setProperty("--charge", `${wandPct}%`);
     chargeUiShown.wand = wandPct;
   }
   if (feedPct !== chargeUiShown.feed) {
     const feedBtn = byId("dbgFeed");
-    if (feedBtn) feedBtn.style.setProperty("--charge", feedPct + "%");
+    if (feedBtn) feedBtn.style.setProperty("--charge", `${feedPct}%`);
     chargeUiShown.feed = feedPct;
   }
 }

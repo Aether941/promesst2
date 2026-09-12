@@ -16,8 +16,8 @@ function resizeCanvas() {
   const kBack = Math.max(1, Math.min(6, Math.round(disp / canvasSize)));
   cv.width = canvasSize * kBack;
   cv.height = canvasSize * kBack;
-  cv.style.width = disp + "px";
-  cv.style.height = disp + "px";
+  cv.style.width = `${disp}px`;
+  cv.style.height = `${disp}px`;
 }
 
 /* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */

@@ -102,11 +102,7 @@ function tryMove(x, y) {
         continue;
       }
       const kind = cellKind(z, cx, cy, abilities); // 终点判定(照原版;cellKind 参数为 列,行)
-      if (kind === "block")
-        return ret(
-          false,
-          "被挡: " + dbgBlockReason(z, cx, cy, abilities),
-        );
+      if (kind === "block") return ret(false, `被挡: ${dbgBlockReason(z, cx, cy, abilities)}`);
       if (kind === "door") {
         setUsed(POW_doors);
         game.ability_flag = used;
@@ -136,8 +132,7 @@ function tryMove(x, y) {
     }
   } else {
     const kindT = cellKind(z, gx, gy, abilities); // cellKind(列,行):gx=列,gy=行
-    if (kindT === "block")
-      return ret(false, "被挡: " + dbgBlockReason(z, gx, gy, abilities));
+    if (kindT === "block") return ret(false, `被挡: ${dbgBlockReason(z, gx, gy, abilities)}`);
     if (kindT === "door") {
       setUsed(POW_doors);
       game.ability_flag = used;
@@ -193,11 +188,7 @@ function tryMove(x, y) {
   if (D) D.landing = dbgCellDesc(nz, game.px, game.py);
   return ret(
     "move",
-    "移动成功" +
-      (travel ? " [紫光远行]" : stepN > 1 ? " [橙光双步×" + stepN + "]" : "") +
-      (usedWall ? " [绿光穿墙]" : "") +
-      (nz !== z ? " [楼梯切层]" : "") +
-      (got_wand ? " [拾取魔杖]" : ""),
+    `移动成功${travel ? " [紫光远行]" : stepN > 1 ? ` [橙光双步×${stepN}]` : ""}${usedWall ? " [绿光穿墙]" : ""}${nz !== z ? " [楼梯切层]" : ""}${got_wand ? " [拾取魔杖]" : ""}`,
   );
 }
 

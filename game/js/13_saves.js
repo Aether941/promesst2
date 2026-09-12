@@ -12,7 +12,7 @@ let slotRenderToken = 0;
  * @param {*} i
  */
 function slotKey(i) {
-  return "v1.slot" + i;
+  return `v1.slot${i}`;
 }
 /**
  * 功能:读取当前激活槽;若无则兼容旧的 main 键。
@@ -71,17 +71,17 @@ function switchSlot(i) {
       if (dd && dd.g) {
         restoreSave(dd);
         gameStarted = true;
-        byId("slotHint").textContent = "已切换到槽 " + i + "。";
+        byId("slotHint").textContent = `已切换到槽 ${i}。`;
       } else {
         reset();
         gameStarted = false;
         clearedFlag = false;
-        byId("slotHint").textContent = "槽 " + i + " 为空,已切换为空档。";
+        byId("slotHint").textContent = `槽 ${i} 为空,已切换为空档。`;
       }
       renderSlots();
     })
     .catch(function (e) {
-      byId("slotHint").textContent = "切换失败:" + e.message;
+      byId("slotHint").textContent = `切换失败:${e.message}`;
     });
 }
 /**
@@ -103,7 +103,7 @@ function pasteSlot(src, dst) {
       if (!data || !data.g) {
         copySource = null;
         renderSlots();
-        byId("slotHint").textContent = "槽 " + src + " 没有可复制的存档。";
+        byId("slotHint").textContent = `槽 ${src} 没有可复制的存档。`;
         return;
       }
       if (data.meta) data.meta.slot = dst;
@@ -118,11 +118,11 @@ function pasteSlot(src, dst) {
         }
         copySource = null;
         renderSlots();
-        byId("slotHint").textContent = "已从槽 " + src + " 复制到槽 " + dst + "。";
+        byId("slotHint").textContent = `已从槽 ${src} 复制到槽 ${dst}。`;
       });
     })
     .catch(function (e) {
-      byId("slotHint").textContent = "复制失败:" + e.message;
+      byId("slotHint").textContent = `复制失败:${e.message}`;
     });
 }
 /**
@@ -137,21 +137,9 @@ function fmtTime(ms) {
    * @param {*} n
    */
   function p(n) {
-    return (n < 10 ? "0" : "") + n;
+    return `${n < 10 ? "0" : ""}${n}`;
   }
-  return (
-    d.getFullYear() +
-    "-" +
-    p(d.getMonth() + 1) +
-    "-" +
-    p(d.getDate()) +
-    " " +
-    p(d.getHours()) +
-    ":" +
-    p(d.getMinutes()) +
-    ":" +
-    p(d.getSeconds())
-  );
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 /**
  * 功能:渲染 3 个存档槽及读取/保存/删除/设为当前按钮。
@@ -183,28 +171,14 @@ function renderSlots() {
       const hasWand =
         i === activeSlot && globalThis.lastSnap ? globalThis.game.has_wand : !!(m && m.wand);
       const row = document.createElement("div");
-      row.className =
-        "slot" + (i === activeSlot ? " active" : "") + (i === copySource ? " copying" : "");
+      row.className = `slot${i === activeSlot ? " active" : ""}${i === copySource ? " copying" : ""}`;
       const info = document.createElement("div");
       info.className = "info";
-      info.innerHTML =
-        "<b>槽 " +
-        i +
-        "</b>" +
-        (i === activeSlot ? " (当前)" : "") +
-        (i === copySource ? " [复制源]" : "") +
-        " — " +
-        (m
-          ? "保存于 " +
-            fmtTime(m.savedAt) +
-            " · 步数 " +
-            m.steps +
-            " · 宝石 " +
-            carry +
-            " · 魔杖 " +
-            (hasWand ? "有" : "无") +
-            (m.cleared ? " · 已通关" : "")
-          : "（空）");
+      info.innerHTML = `<b>槽 ${i}</b>${i === activeSlot ? " (当前)" : ""}${i === copySource ? " [复制源]" : ""} — ${
+        m
+          ? `保存于 ${fmtTime(m.savedAt)} · 步数 ${m.steps} · 宝石 ${carry} · 魔杖 ${hasWand ? "有" : "无"}${m.cleared ? " · 已通关" : ""}`
+          : "（空）"
+      }`;
       row.appendChild(info);
       /**
        * 功能:创建槽位操作按钮并绑定回调。
@@ -222,25 +196,25 @@ function renderSlots() {
       mk("读取", function () {
         idbGet(slotKey(i)).then(function (dd) {
           if (!dd || !dd.g) {
-            byId("slotHint").textContent = "槽 " + i + " 为空。";
+            byId("slotHint").textContent = `槽 ${i} 为空。`;
             return;
           }
           setActiveSlot(i);
           restoreSave(dd);
           gameStarted = true;
-          byId("slotHint").textContent = "已读取槽 " + i + "。";
+          byId("slotHint").textContent = `已读取槽 ${i}。`;
           setMode("game");
         });
       });
       if (copySource === null) {
         mk("复制", function () {
           if (!m) {
-            byId("slotHint").textContent = "槽 " + i + " 为空,不能作为复制源。";
+            byId("slotHint").textContent = `槽 ${i} 为空,不能作为复制源。`;
             return;
           }
           copySource = i;
           renderSlots();
-          byId("slotHint").textContent = "已选中槽 " + i + " 作为复制源,请点击其他槽的「粘贴」。";
+          byId("slotHint").textContent = `已选中槽 ${i} 作为复制源,请点击其他槽的「粘贴」。`;
         });
       } else if (copySource === i) {
         mk("取消", function () {
@@ -260,7 +234,7 @@ function renderSlots() {
         if (copySource === i) copySource = null;
         idbPut(slotKey(i), null).then(function () {
           renderSlots();
-          byId("slotHint").textContent = "已删除槽 " + i + "。";
+          byId("slotHint").textContent = `已删除槽 ${i}。`;
         });
       });
       frag.appendChild(row);
@@ -280,17 +254,10 @@ function exportSave() {
   const p = function (n) {
     return (n < 10 ? "0" : "") + n;
   };
-  const stamp =
-    now.getFullYear() +
-    p(now.getMonth() + 1) +
-    p(now.getDate()) +
-    p(now.getHours()) +
-    p(now.getMinutes()) +
-    p(now.getSeconds());
+  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
   const carry = globalThis.game.num_gems;
   const wand = globalThis.game.has_wand ? "wand" : "nowand";
-  a.download =
-    "promesst2-slot" + activeSlot + "-" + "gems" + carry + "-" + wand + "-" + stamp + ".json";
+  a.download = `promesst2-slot${activeSlot}-gems${carry}-${wand}-${stamp}.json`;
   a.click();
   setTimeout(function () {
     URL.revokeObjectURL(a.href);
@@ -310,10 +277,10 @@ function importSave(file) {
         restoreSave(d);
         gameStarted = true;
         renderSlots();
-        byId("slotHint").textContent = "已导入到槽 " + activeSlot + "。";
+        byId("slotHint").textContent = `已导入到槽 ${activeSlot}。`;
       });
     } catch (ex) {
-      byId("slotHint").textContent = "导入失败:" + ex.message;
+      byId("slotHint").textContent = `导入失败:${ex.message}`;
     }
   };
   fr.readAsText(file);

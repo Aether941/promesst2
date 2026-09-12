@@ -84,18 +84,11 @@ function err(msg) {
 }
 // 全局异常直接显示在页面上(此前静默失败很难排查)
 window.addEventListener("error", function (e) {
-  err(
-    "运行错误: " +
-      (e.message || e.error || "?") +
-      "  @ " +
-      (e.filename || "") +
-      ":" +
-      (e.lineno || 0),
-  );
+  err(`运行错误: ${e.message || e.error || "?"}  @ ${e.filename || ""}:${e.lineno || 0}`);
 });
 window.addEventListener("unhandledrejection", function (e) {
   const r = e.reason;
-  err("异步错误: " + ((r && (r.message || r)) || "?"));
+  err(`异步错误: ${(r && (r.message || r)) || "?"}`);
 });
 /* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */
 globalThis.loop = loop;
@@ -142,7 +135,7 @@ Object.defineProperty(globalThis, "lastRender", {
 (function boot() {
   try {
     if (!RAW || RAW.length !== 24) {
-      err("00_map_data.js 异常:期望 24 行,实际 " + (RAW ? RAW.length : "未定义") + "。");
+      err(`00_map_data.js 异常:期望 24 行,实际 ${RAW ? RAW.length : "未定义"}。`);
       return;
     }
     img = new Image();
@@ -187,9 +180,7 @@ Object.defineProperty(globalThis, "lastRender", {
         });
       } catch (ex) {
         err(
-          "初始化失败:\n" +
-            ex.message +
-            "\n(file:// 打开可能有跨域限制,请用 Live Server 或 python -m http.server)",
+          `初始化失败:\n${ex.message}\n(file:// 打开可能有跨域限制,请用 Live Server 或 python -m http.server)`,
         );
       }
     };
@@ -198,6 +189,6 @@ Object.defineProperty(globalThis, "lastRender", {
     };
     img.src = "./assets/sprites.png";
   } catch (ex) {
-    err("启动失败:" + ex.message);
+    err(`启动失败:${ex.message}`);
   }
 })();

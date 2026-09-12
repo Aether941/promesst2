@@ -42,10 +42,7 @@ function drawEndingOverlay(g, k, camX, camY) {
     } else {
       const scale = Math.min(1, (game.egg_timer - 3000) / 3000) / 2 + 0.5;
       const size = 2 * K * scale;
-      if (
-        game.egg_timer % 200 < (game.egg_timer - 3000) / 20 ||
-        game.egg_timer > 6000
-      ) {
+      if (game.egg_timer % 200 < (game.egg_timer - 3000) / 20 || game.egg_timer > 6000) {
         g.drawImage(img, 64, 48, 32, 32, ox, oy, size, size);
       } else {
         g.drawImage(cellFrom(6, 5), ox, oy, size, size);
@@ -71,8 +68,8 @@ function drawEndingOverlay(g, k, camX, camY) {
       else if (animcycle % 45000 < 2000 || feed_timer > 0) {
         const left = MAX_GEMS - game.gems_stored;
         if (game.gems_stored >= 1 && game.gems_stored <= 12) text = "NEED MORE";
-        else if (game.gems_stored % 7 === 3) text = left + " TO GO";
-        else text = left + " MORE";
+        else if (game.gems_stored % 7 === 3) text = `${left} TO GO`;
+        else text = `${left} MORE`;
       }
       if (text) {
         const size = Math.max(0.9, k * 0.55);
@@ -101,7 +98,7 @@ function drawEndingOverlay(g, k, camX, camY) {
     g.save();
     g.globalCompositeOperation = "lighter";
     g.globalAlpha = Math.min(1, a / 255);
-    g.fillStyle = "rgb(" + r + "," + gg + "," + b + ")";
+    g.fillStyle = `rgb(${r},${gg},${b})`;
     g.fillRect(0, 0, cv.width, cv.height);
     g.restore();
 
@@ -122,9 +119,9 @@ function drawEndingOverlay(g, k, camX, camY) {
       );
       if (game.egg_timer > 17000) {
         const a2 = Math.min(1, (game.egg_timer - 17000) / 2000);
-        const t2 = "USED " + game.num_zaps + " ZAPS";
+        const t2 = `USED ${game.num_zaps} ZAPS`;
         const s2 = Math.max(1.2, k * 1.0);
-        g.fillStyle = "rgba(255,190,255," + a2 + ")";
+        g.fillStyle = `rgba(255,190,255,${a2})`;
         drawBmpText(
           g,
           (cv.width - bmpTextWidth(s2, t2, 1)) / 2,
