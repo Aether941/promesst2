@@ -118,6 +118,7 @@ function activateMenu() {
     setMode("game");
   } else if (id === "wand") {
     if (!ckptSnap) return;
+    clearedFlag = false;
     applySnap(ckptSnap);
     HISTORY = [];
     lastSnap = buildSnap();
@@ -126,6 +127,7 @@ function activateMenu() {
     setMode("game");
     scheduleSave();
   } else if (id === "new") {
+    clearedFlag = false;
     reset();
     gameStarted = true;
     setMode("game");
@@ -144,7 +146,9 @@ function activateMenu() {
  * 功能:进入结算界面并写入通关统计。
  */
 function enterResult() {
-  if (mainMode === "result") return;
+  // Only enter result from actual gameplay; otherwise the ending overlay
+  // rendered behind the menu would immediately pull us back to result.
+  if (mainMode !== "game") return;
   clearedFlag = true;
   HISTORY = []; // 原版通关不落档;这里只清历史并记录通关标记
   scheduleSave();
