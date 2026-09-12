@@ -39,11 +39,11 @@
           <h2>能力</h2>
           <div class="rows">
             <span class="lamps" id="lamps">
-              <span class="lamp c0" data-c="0">红</span>
-              <span class="lamp c1" data-c="1">绿</span>
-              <span class="lamp c4" data-c="4">黄</span>
-              <span class="lamp c3" data-c="3">橙</span>
-              <span class="lamp c5" data-c="5">紫</span>
+              <span class="lamp c0" data-c="0">开门</span>
+              <span class="lamp c1" data-c="1">穿透</span>
+              <span class="lamp c4" data-c="4">粉碎</span>
+              <span class="lamp c3" data-c="3">双格</span>
+              <span class="lamp c5" data-c="5">端点</span>
             </span>
           </div>
         </section>
@@ -51,9 +51,9 @@
         <section class="panel">
           <h2>操作</h2>
           <div class="rows">
-            <button class="btn" id="btnUndo">撤销(Z)</button>
-            <button class="btn" id="btnMenu">菜单(Esc)</button>
-            <button class="btn" id="btnView">全图</button>
+            <button class="btn" id="btnUndo">撤销 (Z)</button>
+            <button class="btn" id="btnMenu">菜单 (Esc)</button>
+            <button class="btn" id="btnView">视角：全图</button>
           </div>
           <div class="rows" style="margin-top: 7px">
             <label class="chk"><input type="checkbox" id="ckGrid" checked />网格</label>
@@ -64,7 +64,7 @@
         <section class="panel" id="dbgrow" style="display: none">
           <h2>调试(仅验证玩法)</h2>
           <div class="rows">
-            <button class="btn" id="dbgWand">30宝石</button>
+            <button class="btn" id="dbgWand">获得30宝石</button>
             <button class="btn" id="dbgFeed">投喂30宝石 (看结局)</button>
             <label class="chk"><input type="checkbox" id="ckNoclip" />穿墙</label>
             <label class="chk">跳过开场<input type="checkbox" id="ckSkipBoot" /> </label>
@@ -80,9 +80,6 @@
                 <option value="360">360 FPS</option>
               </select>
             </label>
-          </div>
-          <div class="rows" style="margin-top: 7px">
-            <span class="badge" id="dbgLights">入射光:—</span>
           </div>
           <div style="margin-top: 6px">
             <pre id="dbgMove">移动判定:—</pre>

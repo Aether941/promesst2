@@ -90,7 +90,7 @@ byId("btnMenu").addEventListener("click", function () {
 });
 byId("btnView").addEventListener("click", function () {
   viewMode = viewMode === "room" ? "map" : "room";
-  byId("btnView").textContent = "视角:" + (viewMode === "room" ? "房间" : "大地图");
+  byId("btnView").textContent = "视角：" + (viewMode === "room" ? "房间" : "全图");
   render();
 });
 byId("btnCreditsBack").addEventListener("click", function () {

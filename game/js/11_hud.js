@@ -15,10 +15,9 @@ const hud = {
   gems: "",
   undo: "",
   move: "",
-  lights: "",
 };
 /**
- * 功能:刷新 HUD 状态、能力灯和调试入射光文本;通过 hud 缓存避免重复写 DOM。
+ * 功能:刷新 HUD 状态和能力灯;通过 hud 缓存避免重复写 DOM。
  */
 function refreshHud() {
   // 实现:用 hud 缓存比较各字段,只在实际变化时更新 DOM;能力灯每帧根据光照更新。
@@ -87,23 +86,9 @@ function refreshHud() {
         kids[li].classList.toggle("used", !on && used);
       }
     }
-    // 调试:玩家格四向入射光(E/N/W/S 各是什么颜色),用于核对紫光远行
-    if (debugOn && lightCache[z]) {
-      const L = lightCache[z].L;
-      const parts = [];
-      for (let d = 0; d < 4; d++) {
-        const v = L[game.py][game.px][d];
-        parts.push(["E", "N", "W", "S"][d] + "=" + (v >= 0 ? CNAMES[v] : "—"));
-      }
-      const lightTxt = "入射光:" + parts.join(" ");
-      if (hud.lights !== lightTxt) {
-        hud.lights = lightTxt;
-        byId("dbgLights").textContent = lightTxt;
-      }
-      if (hud.move !== dbgMsg) {
-        hud.move = dbgMsg;
-        byId("dbgMove").textContent = dbgMsg;
-      }
+    if (debugOn && hud.move !== dbgMsg) {
+      hud.move = dbgMsg;
+      byId("dbgMove").textContent = dbgMsg;
     }
   }
 }
