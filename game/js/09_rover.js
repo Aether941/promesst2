@@ -119,7 +119,14 @@ function moveRovers(roomX, roomY) {
       if (o.type >= O.rover) {
         const d = preferredRoveDirection(z, x, y, rx, ry, occupied);
         if (d < 0) occupied[y][x]++;
-        else occupied[y + YD[d]][x + XD[d]]++;
+        else {
+          const oy = y + YD[d],
+            ox = x + XD[d];
+          // reverse_timer === 0 can point outside the 6x6 room. C writes
+          // its local occupied table out of bounds there; guard to avoid a
+          // JS TypeError. The move loop still uses global objmap coords.
+          if (oy >= 0 && oy < SY && ox >= 0 && ox < SX) occupied[oy][ox]++;
+        }
         rovers.push({ s: x, t: y });
       }
     }
