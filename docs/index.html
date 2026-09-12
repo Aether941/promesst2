@@ -1,45 +1,173 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PROMESST 2 · 源码导读</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
-  <style>
-    :root{ --theme-color:#b07cff; --theme-color-dark:#8f5ce0; }
-  </style>
-</head>
-<body>
-  <div id="app"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PROMESST 2 · Web</title>
+    <link rel="stylesheet" href="./css/main.css" />
+  </head>
+  <body>
+    <div id="layout">
+      <!-- ===================== 左:游戏画面 ===================== -->
+      <main id="stage"><canvas id="cv"></canvas></main>
 
-  <script>
-    window.$docsify = {
-      // 基础
-      name: 'PROMESST 2 · 源码导读',
-      el: '#app',
-      // 路由:显式使用 hash 模式(与 Live Server / 任意静态服务器兼容)
-      routerMode: 'hash',
-      // 目录
-      loadSidebar: true,
-      subMaxLevel: 3,
-      maxLevel: 4,
-      // 封面:先关闭(封面/首页渲染在部分静态服务器上会出问题);
-      // 想恢复把下面改成 true 即可(_coverpage.md 已备好)
-      coverpage: false,
-      auto2top: true,
-      themeColor: '#b07cff',
-      formatUpdated: '{YYYY}-{MM}-{DD}',
-      search: {
-        placeholder: '搜索(函数 / 行号 / 关键字)',
-        noData: '没有匹配结果',
-        depth: 4
-      }
-    };
-  </script>
+      <!-- ===================== 右:控制面板 ===================== -->
+      <aside id="side">
+        <div>
+          <h1>PROMESST 2 · Web</h1>
+          <div class="sub">
+            Original by
+            <a href="https://silverspaceship.com/promesst2/" target="_blank">Sean Barrett</a>
+             · Port by DeepSeek & <a href="https://github.com/Aether941/promesst2" target="_blank">me</a>
+          </div>
+          <div class="sub" id="buildDate">Last Update at</div>
+        </div>
 
-  <!-- docsify 核心(CDN script 引入) -->
-  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
-  <!-- 搜索插件 -->
-  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
-</body>
+        <div id="err"></div>
+
+        <section class="panel" id="bar">
+          <h2>状态</h2>
+          <div class="rows">
+            <span class="badge">楼层<b id="bz">Z0</b></span>
+            <span class="badge">坐标<b id="bxy">(?, ?)</b></span>
+            <span class="badge">房间<b id="broom">(?, ?)</b></span>
+            <span class="badge">朝向<b id="bfacing">下</b></span>
+            <span class="badge">宝石<b id="bcarry">0/30</b></span>
+            <span class="badge">投喂<b id="bgems">0/30</b></span>
+            <span class="badge">魔杖<b id="bwand">无</b></span>
+            <span class="badge">撤销<b id="bund">0</b></span>
+            <span class="badge">步数<b id="bsteps">0</b></span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>能力</h2>
+          <div class="rows">
+            <span class="lamps" id="lamps">
+              <span class="lamp c0" data-c="0">开门</span>
+              <span class="lamp c1" data-c="1">穿透</span>
+              <span class="lamp c4" data-c="4">粉碎</span>
+              <span class="lamp c3" data-c="3">双格</span>
+              <span class="lamp c5" data-c="5">端点</span>
+            </span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>操作</h2>
+          <div class="rows">
+            <button class="btn" id="btnUndo">撤销 (Z)</button>
+            <button class="btn" id="btnMenu">菜单 (Esc)</button>
+            <button class="btn" id="btnView">视角：全图</button>
+          </div>
+          <div class="rows" style="margin-top: 7px">
+            <label class="chk">网格<input type="checkbox" id="ckGrid" checked /></label>
+            <label class="chk">调试<input type="checkbox" id="ckDbg" /></label>
+          </div>
+        </section>
+
+        <section class="panel" id="dbgrow" style="display: none">
+          <h2>调试(仅验证玩法)</h2>
+          <div class="rows">
+            <button class="btn charge" id="dbgWand">获得魔杖+30宝石</button>
+            <button class="btn charge" id="dbgFeed">投喂30宝石 (看结局)</button>
+            <label class="chk">跳过开场<input type="checkbox" id="ckSkipBoot" /> </label>
+            <label class="chk">穿墙<input type="checkbox" id="ckNoclip" /></label>
+            <label class="chk">闪烁<input type="checkbox" id="ckLightFlicker" checked /> </label>
+            <label class="chk">
+              帧率
+              <select id="selFps">
+                <option value="30">30 FPS</option>
+                <option value="60" selected>60 FPS</option>
+                <option value="90">90 FPS</option>
+                <option value="120">120 FPS</option>
+                <option value="240">240 FPS</option>
+                <option value="360">360 FPS</option>
+              </select>
+              (太高会导致其他页面卡顿)
+            </label>
+          </div>
+          <div style="margin-top: 6px">
+            <pre id="dbgMove">移动判定:—</pre>
+            <div class="rows" style="margin-top: 5px">
+              <button class="btn" id="dbgCopy">复制调试信息</button>
+              <span class="badge dbg-nav" id="dbgNav">
+                <button class="dbg-nav-btn" id="dbgPrev" disabled>&lt;</button>
+                <b id="dbgIndex">0/0</b>
+                <button class="dbg-nav-btn" id="dbgNext" disabled>&gt;</button>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="info">
+          <h2>按键与目标</h2>
+          <kbd>方向键</kbd>/<kbd>WASD</kbd> 移动 · <kbd>X</kbd> 射击 · <kbd>V</kbd> 宝石拾放 <br />
+          出生点 Z0 (12,20)，投喂 30 颗宝石通关。
+        </section>
+      </aside>
+    </div>
+
+    <!-- ================= 覆盖层 ================= -->
+    <div class="screen on" id="scrLogo">
+      <img src="./assets/sss_logo.png" alt="logo" />
+    </div>
+
+    <div class="screen" id="scrMenu">
+      <img class="title" src="./assets/title.png" alt="PROMESST 2" />
+      <div class="menu" id="menuItems"></div>
+      <div class="sub">↑/↓ 或 W/S 选择 · Enter/空格 确认 · Esc 返回游戏</div>
+      <div class="sub note" id="menuNote"></div>
+    </div>
+
+    <div class="screen" id="scrCredits">
+      <h2>CREDITS</h2>
+      <div class="credits">
+        <div class="role">GAME BY</div>
+        <div class="name">SEAN BARRETT</div>
+        <div class="role">ENDGAME ART BY</div>
+        <div class="name">ORYX</div>
+        <div class="role">TWIST CONCEPT ASSISTANCE</div>
+        <div class="name">CASEY MURATORI</div>
+        <div class="role">LINUX PORT BY</div>
+        <div class="name">DAVID GOW</div>
+        <div class="role">PLAYTEST BY</div>
+        <div class="name">
+          CASEY MURATORI &nbsp; ZACH SAMUELS<br />JONATHAN BLOW &nbsp; ERIN ROBINSON<br />ALEX
+          MARTIN &nbsp; DAVE MOORE
+        </div>
+      </div>
+      <button class="btn" id="btnCreditsBack">返回(Esc)</button>
+    </div>
+
+    <div class="screen" id="scrSlots">
+      <h2>存档管理</h2>
+      <div class="slots" id="slotList"></div>
+      <div class="row">
+        <button class="btn" id="btnExport">导出JSON</button>
+        <label class="btn" style="display: inline-block">
+          导入 JSON
+          <input
+            type="file"
+            id="fileImport"
+            accept=".json,application/json"
+            style="display: none"
+          />
+        </label>
+        <button class="btn" id="btnSlotsBack">返回(Esc)</button>
+      </div>
+      <div class="sub" id="slotHint">自动存档写入“当前槽”;点“设为当前”后自动存档会写入该槽。</div>
+    </div>
+
+    <div class="screen" id="scrResult">
+      <h2 id="resTitle">YOU WIN</h2>
+      <div class="sub" id="resZaps">USED 0 ZAPS</div>
+      <div class="sub" id="resFed">已喂宝石 30/30</div>
+      <div class="row">
+        <button class="btn" id="btnAgain">再玩一次</button>
+        <button class="btn" id="btnResultMenu">回到标题</button>
+      </div>
+    </div>
+    <script type="module" src="./js/00_main.js"></script>
+  </body>
 </html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROMESST 2 · 源码导读</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root{ --theme-color:#b07cff; --theme-color-dark:#8f5ce0; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    window.$docsify = {
+      // 基础
+      name: 'PROMESST 2 · 源码导读',
+      el: '#app',
+      // 路由:显式使用 hash 模式(与 Live Server / 任意静态服务器兼容)
+      routerMode: 'hash',
+      // 目录
+      loadSidebar: true,
+      subMaxLevel: 3,
+      maxLevel: 4,
+      // 封面:先关闭(封面/首页渲染在部分静态服务器上会出问题);
+      // 想恢复把下面改成 true 即可(_coverpage.md 已备好)
+      coverpage: false,
+      auto2top: true,
+      themeColor: '#b07cff',
+      formatUpdated: '{YYYY}-{MM}-{DD}',
+      search: {
+        placeholder: '搜索(函数 / 行号 / 关键字)',
+        noData: '没有匹配结果',
+        depth: 4
+      }
+    };
+  </script>
+
+  <!-- docsify 核心(CDN script 引入) -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <!-- 搜索插件 -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+</body>
+</html>
