@@ -1,9 +1,10 @@
 "use strict";
 /* PROMESST 2 网页版移植  16_main.js
    主循环、错误处理与启动入口
-   拆分自原 game.js;模块加载顺序见 index.html。 */
+   拆分自原 game.js;模块加载顺序见本文件导入区。 */
 
 /* ---------- ES Module 入口依赖:按原全局脚本依赖顺序加载 ---------- */
+import "./map_data.js"; // 先注入 PROMESST_MAP_RAW,供 02_assets.js 读取
 import "./01_constants.js";
 import "./02_assets.js";
 import "./03_world.js";
