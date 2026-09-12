@@ -47,7 +47,7 @@ function tryMove(x, y) {
     game.player_timer = 80;
     game.steps++;
     startAnim(fx0, fy0);
-    if (D) D.landing = "(" + game.px + "," + game.py + ") Z" + game.pz;
+    if (D) D.landing = dbgCellDesc(game.pz, game.px, game.py);
     return ret("move", "调试穿墙:移动成功");
   }
 
@@ -114,7 +114,7 @@ function tryMove(x, y) {
         game.pdir = proposed_pdir;
         lightDirty = true;
         pauseInput();
-        if (D) D.landing = "(" + cx + "," + cy + ") Z" + game.pz;
+        if (D) D.landing = dbgCellDesc(z, cx, cy);
         return ret("open", "开门 open_door,人不动");
       }
       if (kind === "stone") {
@@ -124,7 +124,7 @@ function tryMove(x, y) {
         game.pdir = proposed_pdir;
         lightDirty = true;
         pauseInput();
-        if (D) D.landing = "(" + cx + "," + cy + ") Z" + game.pz;
+        if (D) D.landing = dbgCellDesc(z, cx, cy);
         return ret("destroy", "碎石 清空,人不动");
       }
       if (world.tile[z][cy][cx] === T.wall) {
@@ -145,7 +145,7 @@ function tryMove(x, y) {
       game.pdir = proposed_pdir;
       lightDirty = true;
       pauseInput();
-      if (D) D.landing = "(" + gx + "," + gy + ") Z" + game.pz;
+      if (D) D.landing = dbgCellDesc(z, gx, gy);
       return ret("open", "开门 open_door,人不动");
     }
     if (kindT === "stone") {
@@ -155,7 +155,7 @@ function tryMove(x, y) {
       game.pdir = proposed_pdir;
       lightDirty = true;
       pauseInput();
-      if (D) D.landing = "(" + gx + "," + gy + ") Z" + game.pz;
+      if (D) D.landing = dbgCellDesc(z, gx, gy);
       return ret("destroy", "碎石 清空,人不动");
     }
     if (world.tile[z][gy][gx] === T.wall) {
@@ -190,7 +190,7 @@ function tryMove(x, y) {
   if (got_wand) {
     ckptSnap = buildSnap();
   } // 魔杖快照(菜单恢复用)
-  if (D) D.landing = "(" + game.px + "," + game.py + ") Z" + game.pz;
+  if (D) D.landing = dbgCellDesc(nz, game.px, game.py);
   return ret(
     "move",
     "移动成功" +

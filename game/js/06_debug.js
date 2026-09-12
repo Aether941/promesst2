@@ -40,7 +40,7 @@ function dbgReset() {
   updateDebugChargeUI();
 }
 /**
- * 功能:返回指定格瓦片的中文名。
+ * 功能:返回指定格贴图的中文名。
  * @param {*} z
  * @param {*} cx
  * @param {*} cy
@@ -49,7 +49,7 @@ function dbgTileName(z, cx, cy) {
   return TILE_CN[world.tile[z][cy][cx]];
 }
 /**
- * 功能:返回格子的瓦片与物体描述,用于调试报告。
+ * 功能:返回格子的贴图与物体描述,用于调试报告。
  * @param {*} z
  * @param {*} cx
  * @param {*} cy
@@ -60,7 +60,7 @@ function dbgCellDesc(z, cx, cy) {
   if (o.type === O.projector) extra = "(色=" + CNAMES[o.color] + " 向=" + DIRNAME[o.dir] + ")";
   else if (o.type === O.refl) extra = "(姿态=" + (o.dir ? "\\\\" : "/") + ")";
   return (
-    "(" + cx + "," + cy + ") 瓦片=" + dbgTileName(z, cx, cy) + " 物体=" + OBJ_CN[o.type] + extra
+    "(" + cx + "," + cy + ") 贴图=" + dbgTileName(z, cx, cy) + " 物体=" + OBJ_CN[o.type] + extra
   );
 }
 /**
@@ -128,12 +128,7 @@ function dbgStart(x, y, z) {
   return {
     lines: [
       "【输入】" + dirName,
-      "【起点】" +
-        dbgCellDesc(z, game.px, game.py) +
-        " Z" +
-        z +
-        " 朝向=" +
-        DIRNAME[game.pdir],
+      "【起点】" + dbgCellDesc(z, game.px, game.py),
     ],
     landing: "无",
   };
