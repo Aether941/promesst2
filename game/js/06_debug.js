@@ -29,6 +29,10 @@ function dbgReset() {
   dbgMsg = "移动判定:—";
   wandCharge = 0;
   feedCharge = 0;
+  const wandBtn = byId("dbgWand");
+  const feedBtn = byId("dbgFeed");
+  if (wandBtn) wandBtn.disabled = false;
+  if (feedBtn) feedBtn.disabled = false;
   updateDebugChargeUI();
 }
 /**
@@ -173,23 +177,27 @@ function updateDebugChargeUI() {
  * 功能:点击"获得30宝石"时蓄力;满 100 触发 cheatWand。
  */
 function addWandCharge() {
+  if (wandCharge >= DEBUG_CHARGE_MAX) return;
   wandCharge = Math.min(DEBUG_CHARGE_MAX, wandCharge + DEBUG_CHARGE_GAIN);
-  if (wandCharge >= DEBUG_CHARGE_MAX) {
-    wandCharge = 0;
-    cheatWand();
-  }
   updateDebugChargeUI();
+  if (wandCharge >= DEBUG_CHARGE_MAX) {
+    cheatWand();
+    const wandBtn = byId("dbgWand");
+    if (wandBtn) wandBtn.disabled = true;
+  }
 }
 /**
  * 功能:点击"投喂30宝石"时蓄力;满 100 触发投喂结局。
  */
 function addFeedCharge() {
+  if (feedCharge >= DEBUG_CHARGE_MAX) return;
   feedCharge = Math.min(DEBUG_CHARGE_MAX, feedCharge + DEBUG_CHARGE_GAIN);
-  if (feedCharge >= DEBUG_CHARGE_MAX) {
-    feedCharge = 0;
-    game.gems_stored = MAX_GEMS;
-  }
   updateDebugChargeUI();
+  if (feedCharge >= DEBUG_CHARGE_MAX) {
+    game.gems_stored = MAX_GEMS;
+    const feedBtn = byId("dbgFeed");
+    if (feedBtn) feedBtn.disabled = true;
+  }
 }
 /**
  * 功能:随时间衰减调试蓄力进度。
@@ -198,8 +206,12 @@ function addFeedCharge() {
 function updateDebugCharges(ms) {
   if (wandCharge <= 0 && feedCharge <= 0) return;
   const decay = DEBUG_CHARGE_DECAY_PER_MS * ms;
-  if (wandCharge > 0) wandCharge = Math.max(0, wandCharge - decay);
-  if (feedCharge > 0) feedCharge = Math.max(0, feedCharge - decay);
+  if (wandCharge > 0 && wandCharge < DEBUG_CHARGE_MAX) {
+    wandCharge = Math.max(0, wandCharge - decay);
+  }
+  if (feedCharge > 0 && feedCharge < DEBUG_CHARGE_MAX) {
+    feedCharge = Math.max(0, feedCharge - decay);
+  }
   updateDebugChargeUI();
 }
 // 目标格分类(参数为 **列cx, 行cy**,与 world.tile[z][cy][cx] 一致;能力已内联判定)

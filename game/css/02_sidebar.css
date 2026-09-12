@@ -198,6 +198,15 @@
   pointer-events: none;
   transition: width 0.12s ease;
 }
+.charge:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+  border-color: rgba(125, 211, 252, 0.45);
+  box-shadow:
+    0 0 0 3px rgba(125, 211, 252, 0.08),
+    0 0 16px rgba(125, 211, 252, 0.18);
+}
 
 label.chk {
   display: inline-flex;
