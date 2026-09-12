@@ -22,12 +22,7 @@ const tintCache = {};
  */
 function sample(x, y) {
   const i = (y * ATLAS + x) * 4;
-  return [
-    imgData.data[i],
-    imgData.data[i + 1],
-    imgData.data[i + 2],
-    imgData.data[i + 3],
-  ];
+  return [imgData.data[i], imgData.data[i + 1], imgData.data[i + 2], imgData.data[i + 3]];
 }
 /**
  * 功能:从精灵表固定像素采样 8 种能力色,写入全局 powers。
@@ -48,17 +43,7 @@ function cellFrom(s, t) {
     c = document.createElement("canvas");
     c.width = CELL;
     c.height = CELL;
-    c.getContext("2d").drawImage(
-      img,
-      s * CELL,
-      t * CELL,
-      CELL,
-      CELL,
-      0,
-      0,
-      CELL,
-      CELL,
-    );
+    c.getContext("2d").drawImage(img, s * CELL, t * CELL, CELL, CELL, 0, 0, CELL, CELL);
     tileCache[key] = c;
   }
   return c;
@@ -135,26 +120,46 @@ globalThis.RAW = RAW;
 globalThis.tileCache = tileCache;
 Object.defineProperty(globalThis, "ATLAS", {
   configurable: true,
-  get() { return ATLAS; },
-  set(value) { ATLAS = value; },
+  get() {
+    return ATLAS;
+  },
+  set(value) {
+    ATLAS = value;
+  },
 });
 Object.defineProperty(globalThis, "CELL", {
   configurable: true,
-  get() { return CELL; },
-  set(value) { CELL = value; },
+  get() {
+    return CELL;
+  },
+  set(value) {
+    CELL = value;
+  },
 });
 Object.defineProperty(globalThis, "img", {
   configurable: true,
-  get() { return img; },
-  set(value) { img = value; },
+  get() {
+    return img;
+  },
+  set(value) {
+    img = value;
+  },
 });
 Object.defineProperty(globalThis, "imgData", {
   configurable: true,
-  get() { return imgData; },
-  set(value) { imgData = value; },
+  get() {
+    return imgData;
+  },
+  set(value) {
+    imgData = value;
+  },
 });
 Object.defineProperty(globalThis, "powers", {
   configurable: true,
-  get() { return powers; },
-  set(value) { powers = value; },
+  get() {
+    return powers;
+  },
+  set(value) {
+    powers = value;
+  },
 });

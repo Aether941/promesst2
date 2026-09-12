@@ -88,9 +88,8 @@ function propagate(z, world, pw) {
         any[ay][ax] = 1;
       }
     }
-  return {L: L, any: any, end: end};
+  return { L: L, any: any, end: end };
 }
-
 
 // ---------- 光照缓存 / 能力判定 / 射击(移植 compute_powered+propagate 应用层) ----------
 let lightCache = [null, null]; // lightCache[z]={pw,L,any}
@@ -148,7 +147,7 @@ function glideTarget(z, px, py, pdir, L) {
   gx = wrapX(gx - x);
   gy = wrapY(gy - y);
   if (gx === px && gy === py) return null; // 原版:退化为普通移动
-  return {x: gx, y: gy};
+  return { x: gx, y: gy };
 }
 
 /**
@@ -209,7 +208,7 @@ function findLightsOnPlayer() {
       for (;;) {
         ax = wrapX(ax + dx);
         ay = wrapY(ay + dy);
-        if (ax === game.px && ay === game.py) out.push({x: x, y: y});
+        if (ax === game.px && ay === game.py) out.push({ x: x, y: y });
         if (world.tile[z][ay][ax] === T.door) break;
         if (world.obj[z][ay][ax].type === O.refl) {
           if (world.obj[z][ay][ax].dir === 0) dir ^= 1;
@@ -261,11 +260,19 @@ globalThis.findLightsOnPlayer = findLightsOnPlayer;
 globalThis.shoot = shoot;
 Object.defineProperty(globalThis, "lightCache", {
   configurable: true,
-  get() { return lightCache; },
-  set(value) { lightCache = value; },
+  get() {
+    return lightCache;
+  },
+  set(value) {
+    lightCache = value;
+  },
 });
 Object.defineProperty(globalThis, "lightDirty", {
   configurable: true,
-  get() { return lightDirty; },
-  set(value) { lightDirty = value; },
+  get() {
+    return lightDirty;
+  },
+  set(value) {
+    lightDirty = value;
+  },
 });

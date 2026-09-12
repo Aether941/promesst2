@@ -32,7 +32,7 @@ function pState() {
  * 功能:导出 rover 相关计时器状态。
  */
 function tState() {
-  return {feed: feed_timer, rev: reverse_timer, rt: rover_timer};
+  return { feed: feed_timer, rev: reverse_timer, rt: rover_timer };
 }
 /**
  * 功能:把玩家状态快照应用到 game。
@@ -65,7 +65,7 @@ function applyT(t) {
  */
 function buildSnap() {
   // 实现:逐格复制 tile 与物体属性,再附加玩家和计时器状态。
-  const S = {tile: [], type: [], dir: [], col: []};
+  const S = { tile: [], type: [], dir: [], col: [] };
   for (let z = 0; z < 2; z++) {
     S.tile[z] = [];
     S.type[z] = [];
@@ -114,8 +114,7 @@ function diffSnap(A, B) {
   for (let z = 0; z < 2; z++)
     for (let y = 0; y < WH; y++)
       for (let x = 0; x < WW; x++) {
-        if (A.type[z][y][x] === O.rover || B.type[z][y][x] === O.rover)
-          continue;
+        if (A.type[z][y][x] === O.rover || B.type[z][y][x] === O.rover) continue;
         if (A.tile[z][y][x] !== B.tile[z][y][x])
           diffs.push({
             k: 0,
@@ -154,7 +153,7 @@ function diffSnap(A, B) {
 function idxToC(i) {
   const z = (i / (WH * WW)) | 0;
   const r = i % (WH * WW);
-  return {z: z, y: (r / WW) | 0, x: r % WW};
+  return { z: z, y: (r / WW) | 0, x: r % WW };
 }
 /**
  * 功能:按差异条目更新世界格子;useOld 为 true 时回滚旧值。
@@ -210,7 +209,7 @@ function commitHistory() {
     lastSnap = cur;
     return;
   } // 真正 no-op
-  HISTORY.push({diffs: diffs, pre: {player: lastSnap.player, t: lastSnap.t}});
+  HISTORY.push({ diffs: diffs, pre: { player: lastSnap.player, t: lastSnap.t } });
   lastSnap = cur;
   scheduleSave();
 }
@@ -281,9 +280,7 @@ function idbGet(key) {
  */
 function idbPut(key, val) {
   return new Promise(function (res, rej) {
-    const rq = DB.transaction("kv", "readwrite")
-      .objectStore("kv")
-      .put(val, key);
+    const rq = DB.transaction("kv", "readwrite").objectStore("kv").put(val, key);
     rq.onsuccess = function () {
       res();
     };
@@ -387,11 +384,7 @@ function drop() {
     // 站在宝石上 → 拾起
     o.type = O.empty;
     game.num_gems++;
-  } else if (
-    game.num_gems > 0 &&
-    o.type === O.empty &&
-    world.tile[z][y][x] === T.recep
-  ) {
+  } else if (game.num_gems > 0 && o.type === O.empty && world.tile[z][y][x] === T.recep) {
     // 携带宝石且脚下是空底座 → 放入
     game.num_gems--;
     o.type = O.gem;
@@ -427,26 +420,46 @@ globalThis.restoreSave = restoreSave;
 globalThis.drop = drop;
 Object.defineProperty(globalThis, "HISTORY", {
   configurable: true,
-  get() { return HISTORY; },
-  set(value) { HISTORY = value; },
+  get() {
+    return HISTORY;
+  },
+  set(value) {
+    HISTORY = value;
+  },
 });
 Object.defineProperty(globalThis, "lastSnap", {
   configurable: true,
-  get() { return lastSnap; },
-  set(value) { lastSnap = value; },
+  get() {
+    return lastSnap;
+  },
+  set(value) {
+    lastSnap = value;
+  },
 });
 Object.defineProperty(globalThis, "ckptSnap", {
   configurable: true,
-  get() { return ckptSnap; },
-  set(value) { ckptSnap = value; },
+  get() {
+    return ckptSnap;
+  },
+  set(value) {
+    ckptSnap = value;
+  },
 });
 Object.defineProperty(globalThis, "DB", {
   configurable: true,
-  get() { return DB; },
-  set(value) { DB = value; },
+  get() {
+    return DB;
+  },
+  set(value) {
+    DB = value;
+  },
 });
 Object.defineProperty(globalThis, "saveTimer", {
   configurable: true,
-  get() { return saveTimer; },
-  set(value) { saveTimer = value; },
+  get() {
+    return saveTimer;
+  },
+  set(value) {
+    saveTimer = value;
+  },
 });

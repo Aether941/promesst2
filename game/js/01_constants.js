@@ -95,24 +95,24 @@ const OBJ_SPR = [
 const LIGHTS = "rRPwgGHyYLtTVjoOAa";
 // 投影器字符对应的颜色和初始朝向。
 const LIGHTDATA = [
-  {c: 0, d: DIR_E},
-  {c: 0, d: DIR_N},
-  {c: 0, d: DIR_S},
-  {c: 0, d: DIR_W},
-  {c: 1, d: DIR_E},
-  {c: 1, d: DIR_S},
-  {c: 1, d: DIR_W},
-  {c: 4, d: DIR_S},
-  {c: 4, d: DIR_E},
-  {c: 4, d: DIR_W},
-  {c: 5, d: DIR_W},
-  {c: 5, d: DIR_S},
-  {c: 5, d: DIR_N},
-  {c: 5, d: DIR_E},
-  {c: 3, d: DIR_E},
-  {c: 3, d: DIR_W},
-  {c: 3, d: DIR_N},
-  {c: 3, d: DIR_S},
+  { c: 0, d: DIR_E },
+  { c: 0, d: DIR_N },
+  { c: 0, d: DIR_S },
+  { c: 0, d: DIR_W },
+  { c: 1, d: DIR_E },
+  { c: 1, d: DIR_S },
+  { c: 1, d: DIR_W },
+  { c: 4, d: DIR_S },
+  { c: 4, d: DIR_E },
+  { c: 4, d: DIR_W },
+  { c: 5, d: DIR_W },
+  { c: 5, d: DIR_S },
+  { c: 5, d: DIR_N },
+  { c: 5, d: DIR_E },
+  { c: 3, d: DIR_E },
+  { c: 3, d: DIR_W },
+  { c: 3, d: DIR_N },
+  { c: 3, d: DIR_S },
 ];
 // 颜色显示名,索引与颜色枚举一致。
 const CNAMES = ["红", "绿", "蓝", "橙", "黄", "紫", "青", "粉"];
@@ -156,8 +156,8 @@ const OBJ_CN = ["空", "石块", "宝石", "投影器", "魔杖", "反射镜", "
 const FONT = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789>^<v/ ";
 // 内置字体每个字符的宽度。
 const FSIZE = [
-  4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 3, 4, 5, 5, 5, 5, 4,
-  4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 4,
+  4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 3, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
+  4, 4, 4, 5, 5, 5, 5, 5, 4,
 ];
 
 // ---------- 里程碑特性开关 ----------

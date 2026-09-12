@@ -24,7 +24,7 @@ function drawEndingOverlay(g, k, camX, camY) {
   for (y = 0; y < WH && !rover; y++)
     for (x = 0; x < WW; x++)
       if (world.obj[z][y][x].type === O.rover) {
-        rover = {x: x, y: y};
+        rover = { x: x, y: y };
         break;
       }
   // rover 在当前视角画布中的左上角坐标;供彩虹/气泡等世界内叠层使用。
@@ -64,21 +64,9 @@ function drawEndingOverlay(g, k, camX, camY) {
       const w = bmpTextWidth(size, text, 1);
       g.save();
       g.fillStyle = "rgba(0,0,0,0.55)";
-      g.fillRect(
-        rx + K / 2 - w / 2 - 3,
-        ry - size * 10 - 3,
-        w + 6,
-        size * 9 + 6,
-      );
+      g.fillRect(rx + K / 2 - w / 2 - 3, ry - size * 10 - 3, w + 6, size * 9 + 6);
       g.fillStyle = "#ffffff";
-      drawBmpText(
-        g,
-        rx + K / 2 - w / 2,
-        ry - size * 10,
-        size,
-        text,
-        1,
-      );
+      drawBmpText(g, rx + K / 2 - w / 2, ry - size * 10, size, text, 1);
       g.restore();
     }
   }
@@ -201,11 +189,9 @@ function render() {
   let drawX = game.px,
     drawY = game.py;
   if (animMove && game.player_timer > 0) {
-    const bigJump =
-      Math.abs(animFromX - game.px) > 1 || Math.abs(animFromY - game.py) > 1;
+    const bigJump = Math.abs(animFromX - game.px) > 1 || Math.abs(animFromY - game.py) > 1;
     const behindIsFrom =
-      wrapX(game.px - XD[game.pdir]) === animFromX &&
-      wrapY(game.py - YD[game.pdir]) === animFromY;
+      wrapX(game.px - XD[game.pdir]) === animFromX && wrapY(game.py - YD[game.pdir]) === animFromY;
     if (!(bigJump && behindIsFrom)) {
       // 跨世界缝:瞬移,不做滑入
       const slide = game.player_timer / 80; // 80 -> 0,偏移 1 格 -> 0 格
@@ -304,13 +290,7 @@ function render() {
             if (cc < 0) continue;
             ctx.globalAlpha = alpha * flicker;
             ctx.globalCompositeOperation = "lighter";
-            ctx.drawImage(
-              tintedCell(4 + (d & 1), 5, powers[cc]),
-              x * K,
-              y * K,
-              K,
-              K,
-            );
+            ctx.drawImage(tintedCell(4 + (d & 1), 5, powers[cc]), x * K, y * K, K, K);
             ctx.globalCompositeOperation = "source-over";
             ctx.globalAlpha = 1;
           }
@@ -322,13 +302,7 @@ function render() {
           const e = lit.end[i];
           ctx.globalAlpha = 0.16 * flicker;
           ctx.globalCompositeOperation = "lighter";
-          ctx.drawImage(
-            tintedCell(e.side, 5, powers[e.color]),
-            e.x * K,
-            e.y * K,
-            K,
-            K,
-          );
+          ctx.drawImage(tintedCell(e.side, 5, powers[e.color]), e.x * K, e.y * K, K, K);
           ctx.globalCompositeOperation = "source-over";
           ctx.globalAlpha = 1;
         }
@@ -405,16 +379,28 @@ globalThis.canvasSize = canvasSize;
 
 Object.defineProperty(globalThis, "viewMode", {
   configurable: true,
-  get() { return viewMode; },
-  set(value) { viewMode = value; },
+  get() {
+    return viewMode;
+  },
+  set(value) {
+    viewMode = value;
+  },
 });
 Object.defineProperty(globalThis, "showGrid", {
   configurable: true,
-  get() { return showGrid; },
-  set(value) { showGrid = value; },
+  get() {
+    return showGrid;
+  },
+  set(value) {
+    showGrid = value;
+  },
 });
 Object.defineProperty(globalThis, "lightFlickerEnabled", {
   configurable: true,
-  get() { return lightFlickerEnabled; },
-  set(value) { lightFlickerEnabled = value; },
+  get() {
+    return lightFlickerEnabled;
+  },
+  set(value) {
+    lightFlickerEnabled = value;
+  },
 });

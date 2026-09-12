@@ -14,12 +14,12 @@ let menuSel = 0;
 let clearedFlag = false;
 // 主菜单项配置。
 const MENU = [
-  {id: "continue", label: "继续游戏", sub: "回到当前进度"},
-  {id: "wand", label: "从魔杖恢复", sub: "回到拾到魔杖那一刻的快照"},
-  {id: "new", label: "新游戏", sub: "从头开始(清空撤销历史)"},
-  {id: "slots", label: "存档管理", sub: "3 个存档槽 / 导出导入"},
-  {id: "credits", label: "Credits", sub: "原作者与贡献者"},
-  {id: "quit", label: "保存并回到标题", sub: "保存当前进度"},
+  { id: "continue", label: "继续游戏", sub: "回到当前进度" },
+  { id: "wand", label: "从魔杖恢复", sub: "回到拾到魔杖那一刻的快照" },
+  { id: "new", label: "新游戏", sub: "从头开始(清空撤销历史)" },
+  { id: "slots", label: "存档管理", sub: "3 个存档槽 / 导出导入" },
+  { id: "credits", label: "Credits", sub: "原作者与贡献者" },
+  { id: "quit", label: "保存并回到标题", sub: "保存当前进度" },
 ];
 /**
  * 功能:返回菜单各项是否可用。
@@ -63,9 +63,7 @@ function refreshMenu() {
     ch[i].disabled = !en[i];
     ch[i].className = i === menuSel ? "sel" : "";
   }
-  byId("menuNote").textContent = gameStarted
-    ? ""
-    : "当前没有存档:请选择“新游戏”开始。";
+  byId("menuNote").textContent = gameStarted ? "" : "当前没有存档:请选择“新游戏”开始。";
 }
 /**
  * 功能:按 dir 上下移动菜单选择,跳过禁用项。
@@ -84,12 +82,10 @@ function moveMenuSel(dir) {
  * @param {*} name
  */
 function showScreen(name) {
-  ["scrLogo", "scrMenu", "scrCredits", "scrSlots", "scrResult"].forEach(
-    function (id) {
-      const el = byId(id);
-      if (el) el.classList.toggle("on", id === "scr" + name);
-    },
-  );
+  ["scrLogo", "scrMenu", "scrCredits", "scrSlots", "scrResult"].forEach(function (id) {
+    const el = byId(id);
+    if (el) el.classList.toggle("on", id === "scr" + name);
+  });
 }
 /**
  * 功能:设置主模式 m,显示对应界面并重置主循环计时。
@@ -169,26 +165,46 @@ globalThis.enterResult = enterResult;
 globalThis.MENU = MENU;
 Object.defineProperty(globalThis, "mainMode", {
   configurable: true,
-  get() { return mainMode; },
-  set(value) { mainMode = value; },
+  get() {
+    return mainMode;
+  },
+  set(value) {
+    mainMode = value;
+  },
 });
 Object.defineProperty(globalThis, "logoTime", {
   configurable: true,
-  get() { return logoTime; },
-  set(value) { logoTime = value; },
+  get() {
+    return logoTime;
+  },
+  set(value) {
+    logoTime = value;
+  },
 });
 Object.defineProperty(globalThis, "gameStarted", {
   configurable: true,
-  get() { return gameStarted; },
-  set(value) { gameStarted = value; },
+  get() {
+    return gameStarted;
+  },
+  set(value) {
+    gameStarted = value;
+  },
 });
 Object.defineProperty(globalThis, "menuSel", {
   configurable: true,
-  get() { return menuSel; },
-  set(value) { menuSel = value; },
+  get() {
+    return menuSel;
+  },
+  set(value) {
+    menuSel = value;
+  },
 });
 Object.defineProperty(globalThis, "clearedFlag", {
   configurable: true,
-  get() { return clearedFlag; },
-  set(value) { clearedFlag = value; },
+  get() {
+    return clearedFlag;
+  },
+  set(value) {
+    clearedFlag = value;
+  },
 });

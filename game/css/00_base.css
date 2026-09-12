@@ -26,8 +26,7 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(1100px 720px at 70% -10%, rgba(176, 124, 255, 0.08), transparent 58%),
-    var(--bg);
+    radial-gradient(1100px 720px at 70% -10%, rgba(176, 124, 255, 0.08), transparent 58%), var(--bg);
   color: var(--txt);
   overflow: hidden;
   font:
@@ -37,4 +36,3 @@ body {
     system-ui,
     sans-serif;
 }
-

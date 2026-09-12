@@ -143,8 +143,7 @@ function renderSlots() {
       mk("设为当前", function () {
         setActiveSlot(i);
         renderSlots();
-        byId("slotHint").textContent =
-          "当前槽 = " + i + "(自动存档将写入此槽)。";
+        byId("slotHint").textContent = "当前槽 = " + i + "(自动存档将写入此槽)。";
       });
       mk("删除", function () {
         idbPut(slotKey(i), null).then(function () {
@@ -161,7 +160,7 @@ function renderSlots() {
  */
 function exportSave() {
   const data = JSON.stringify(packSave());
-  const blob = new Blob([data], {type: "application/json"});
+  const blob = new Blob([data], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "promesst2-slot" + activeSlot + ".json";
@@ -203,6 +202,10 @@ globalThis.exportSave = exportSave;
 globalThis.importSave = importSave;
 Object.defineProperty(globalThis, "activeSlot", {
   configurable: true,
-  get() { return activeSlot; },
-  set(value) { activeSlot = value; },
+  get() {
+    return activeSlot;
+  },
+  set(value) {
+    activeSlot = value;
+  },
 });

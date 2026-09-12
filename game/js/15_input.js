@@ -61,7 +61,7 @@ window.addEventListener("keydown", function (e) {
     held.push(c);
     return;
   }
-  const a = {KeyX: "x", KeyV: "v", KeyZ: "z", KeyC: "c"}[e.code];
+  const a = { KeyX: "x", KeyV: "v", KeyZ: "z", KeyC: "c" }[e.code];
   if (a) {
     e.preventDefault();
     q = a;

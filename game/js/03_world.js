@@ -20,7 +20,7 @@ function parseWorld() {
     for (y = 0; y < WH; y++) {
       tile[z][y] = new Array(WW).fill(T.floor);
       obj[z][y] = new Array(WW);
-      for (x = 0; x < WW; x++) obj[z][y][x] = {type: O.empty, dir: 0, color: 0};
+      for (x = 0; x < WW; x++) obj[z][y][x] = { type: O.empty, dir: 0, color: 0 };
     }
   }
   for (z = 0; z < 2; z++) {
@@ -33,7 +33,7 @@ function parseWorld() {
           t = T.floor;
         switch (d) {
           case "p":
-            player = {x: x, y: y, z: z};
+            player = { x: x, y: y, z: z };
             break;
           case ">":
             t = T.arrow_e;
@@ -61,7 +61,7 @@ function parseWorld() {
             o.dir = 1;
             break;
           case "z":
-            egg = {x: x, y: y};
+            egg = { x: x, y: y };
             break;
           case "*":
             o.type = O.stone;
@@ -127,8 +127,7 @@ function parseWorld() {
     }
   }
   if (egg) {
-    for (x = 0; x < 3; x++)
-      tile[0][egg.y + 1][egg.x - 1 + x] = EGG_BASE + 3 + x;
+    for (x = 0; x < 3; x++) tile[0][egg.y + 1][egg.x - 1 + x] = EGG_BASE + 3 + x;
   }
   // rover 初向(同 C)
   for (z = 0; z < 2; z++)
@@ -146,9 +145,9 @@ function parseWorld() {
         }
       }
   if (!player) {
-    player = {x: 0, y: 0, z: 0};
+    player = { x: 0, y: 0, z: 0 };
   }
-  return {tile: tile, obj: obj, player: player, egg: egg};
+  return { tile: tile, obj: obj, player: player, egg: egg };
 }
 
 /* ---------- ESM 全局桥:保持原经典脚本的跨模块状态共享 ---------- */

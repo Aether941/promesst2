@@ -69,7 +69,7 @@ function stepRovers() {
       for (yy2 = 0; yy2 < SY; yy2++)
         for (xx2 = 0; xx2 < SX; xx2++) {
           const o = world.obj[z][y0 + yy2][x0 + xx2];
-          if (o.type === O.rover) list.push({o: o, x: x0 + xx2, y: y0 + yy2});
+          if (o.type === O.rover) list.push({ o: o, x: x0 + xx2, y: y0 + yy2 });
         }
       for (let i = 0; i < list.length; i++) {
         const r = list[i];
@@ -82,8 +82,7 @@ function stepRovers() {
         if (target.type === O.rover) continue; // 目标有另一只:本只等待
         let clash = false;
         for (let j = 0; j < i; j++)
-          if (list[j].moved && list[j].nx === nx && list[j].ny === ny)
-            clash = true;
+          if (list[j].moved && list[j].nx === nx && list[j].ny === ny) clash = true;
         if (clash) continue; // 同房多只同争一格:先到先得
         if (target.type === O.gem) {
           // 吃宝石 → 计数 + 反转计时
@@ -125,11 +124,7 @@ function update(ms) {
   if (FEATURE_ROVER && (game.gems_stored < MAX_GEMS || reverse_timer > 0)) {
     rover_timer -= ms;
     let guard = 0;
-    while (
-      rover_timer < 0 &&
-      guard < 4 &&
-      (game.gems_stored < MAX_GEMS || reverse_timer > 0)
-    ) {
+    while (rover_timer < 0 && guard < 4 && (game.gems_stored < MAX_GEMS || reverse_timer > 0)) {
       rover_timer += ROVER_MS;
       stepRovers();
       guard++;

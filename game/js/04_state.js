@@ -45,7 +45,7 @@ let rover_timer = 0,
  * 功能:深拷贝 world 的 tile 和 obj,返回独立副本。
  */
 function copyWorld() {
-  const c = {tile: [], obj: []};
+  const c = { tile: [], obj: [] };
   for (let z = 0; z < 2; z++) {
     c.tile[z] = [];
     c.obj[z] = [];
@@ -129,56 +129,100 @@ globalThis.FEED_MS = FEED_MS;
 globalThis.REVERSE_MS = REVERSE_MS;
 Object.defineProperty(globalThis, "world", {
   configurable: true,
-  get() { return world; },
-  set(value) { world = value; },
+  get() {
+    return world;
+  },
+  set(value) {
+    world = value;
+  },
 });
 Object.defineProperty(globalThis, "animFromX", {
   configurable: true,
-  get() { return animFromX; },
-  set(value) { animFromX = value; },
+  get() {
+    return animFromX;
+  },
+  set(value) {
+    animFromX = value;
+  },
 });
 Object.defineProperty(globalThis, "animFromY", {
   configurable: true,
-  get() { return animFromY; },
-  set(value) { animFromY = value; },
+  get() {
+    return animFromY;
+  },
+  set(value) {
+    animFromY = value;
+  },
 });
 Object.defineProperty(globalThis, "animMove", {
   configurable: true,
-  get() { return animMove; },
-  set(value) { animMove = value; },
+  get() {
+    return animMove;
+  },
+  set(value) {
+    animMove = value;
+  },
 });
 Object.defineProperty(globalThis, "animcycle", {
   configurable: true,
-  get() { return animcycle; },
-  set(value) { animcycle = value; },
+  get() {
+    return animcycle;
+  },
+  set(value) {
+    animcycle = value;
+  },
 });
 Object.defineProperty(globalThis, "q", {
   configurable: true,
-  get() { return q; },
-  set(value) { q = value; },
+  get() {
+    return q;
+  },
+  set(value) {
+    q = value;
+  },
 });
 Object.defineProperty(globalThis, "held", {
   configurable: true,
-  get() { return held; },
-  set(value) { held = value; },
+  get() {
+    return held;
+  },
+  set(value) {
+    held = value;
+  },
 });
 Object.defineProperty(globalThis, "checkpoint", {
   configurable: true,
-  get() { return checkpoint; },
-  set(value) { checkpoint = value; },
+  get() {
+    return checkpoint;
+  },
+  set(value) {
+    checkpoint = value;
+  },
 });
 Object.defineProperty(globalThis, "rover_timer", {
   configurable: true,
-  get() { return rover_timer; },
-  set(value) { rover_timer = value; },
+  get() {
+    return rover_timer;
+  },
+  set(value) {
+    rover_timer = value;
+  },
 });
 Object.defineProperty(globalThis, "feed_timer", {
   configurable: true,
-  get() { return feed_timer; },
-  set(value) { feed_timer = value; },
+  get() {
+    return feed_timer;
+  },
+  set(value) {
+    feed_timer = value;
+  },
 });
 Object.defineProperty(globalThis, "reverse_timer", {
   configurable: true,
-  get() { return reverse_timer; },
-  set(value) { reverse_timer = value; },
+  get() {
+    return reverse_timer;
+  },
+  set(value) {
+    reverse_timer = value;
+  },
 });

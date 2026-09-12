@@ -104,33 +104,45 @@ globalThis.FPS_OPTIONS = FPS_OPTIONS;
 globalThis.selFps = selFps;
 Object.defineProperty(globalThis, "renderInterval", {
   configurable: true,
-  get() { return renderInterval; },
-  set(value) { renderInterval = value; },
+  get() {
+    return renderInterval;
+  },
+  set(value) {
+    renderInterval = value;
+  },
 });
 Object.defineProperty(globalThis, "last", {
   configurable: true,
-  get() { return last; },
-  set(value) { last = value; },
+  get() {
+    return last;
+  },
+  set(value) {
+    last = value;
+  },
 });
 Object.defineProperty(globalThis, "acc", {
   configurable: true,
-  get() { return acc; },
-  set(value) { acc = value; },
+  get() {
+    return acc;
+  },
+  set(value) {
+    acc = value;
+  },
 });
 Object.defineProperty(globalThis, "lastRender", {
   configurable: true,
-  get() { return lastRender; },
-  set(value) { lastRender = value; },
+  get() {
+    return lastRender;
+  },
+  set(value) {
+    lastRender = value;
+  },
 });
 
 (function boot() {
   try {
     if (!RAW || RAW.length !== 24) {
-      err(
-        "00_map_data.js 异常:期望 24 行,实际 " +
-          (RAW ? RAW.length : "未定义") +
-          "。",
-      );
+      err("00_map_data.js 异常:期望 24 行,实际 " + (RAW ? RAW.length : "未定义") + "。");
       return;
     }
     img = new Image();

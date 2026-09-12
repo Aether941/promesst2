@@ -37,19 +37,10 @@ function dbgTileName(z, cx, cy) {
 function dbgCellDesc(z, cx, cy) {
   let o = world.obj[z][cy][cx],
     extra = "";
-  if (o.type === O.projector)
-    extra = "(色=" + CNAMES[o.color] + " 向=" + DIRNAME[o.dir] + ")";
+  if (o.type === O.projector) extra = "(色=" + CNAMES[o.color] + " 向=" + DIRNAME[o.dir] + ")";
   else if (o.type === O.refl) extra = "(姿态=" + (o.dir ? "\\\\" : "/") + ")";
   return (
-    "(" +
-    cx +
-    "," +
-    cy +
-    ") 瓦片=" +
-    dbgTileName(z, cx, cy) +
-    " 物体=" +
-    OBJ_CN[o.type] +
-    extra
+    "(" + cx + "," + cy + ") 瓦片=" + dbgTileName(z, cx, cy) + " 物体=" + OBJ_CN[o.type] + extra
   );
 }
 /**
@@ -187,26 +178,46 @@ globalThis.cheatNoclip = cheatNoclip;
 globalThis.cellKind = cellKind;
 Object.defineProperty(globalThis, "noclip", {
   configurable: true,
-  get() { return noclip; },
-  set(value) { noclip = value; },
+  get() {
+    return noclip;
+  },
+  set(value) {
+    noclip = value;
+  },
 });
 Object.defineProperty(globalThis, "debugOn", {
   configurable: true,
-  get() { return debugOn; },
-  set(value) { debugOn = value; },
+  get() {
+    return debugOn;
+  },
+  set(value) {
+    debugOn = value;
+  },
 });
 Object.defineProperty(globalThis, "dbgMsg", {
   configurable: true,
-  get() { return dbgMsg; },
-  set(value) { dbgMsg = value; },
+  get() {
+    return dbgMsg;
+  },
+  set(value) {
+    dbgMsg = value;
+  },
 });
 Object.defineProperty(globalThis, "dbgLog", {
   configurable: true,
-  get() { return dbgLog; },
-  set(value) { dbgLog = value; },
+  get() {
+    return dbgLog;
+  },
+  set(value) {
+    dbgLog = value;
+  },
 });
 Object.defineProperty(globalThis, "skipLogoMenu", {
   configurable: true,
-  get() { return skipLogoMenu; },
-  set(value) { skipLogoMenu = value; },
+  get() {
+    return skipLogoMenu;
+  },
+  set(value) {
+    skipLogoMenu = value;
+  },
 });
