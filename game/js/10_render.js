@@ -129,8 +129,12 @@ function drawEndingOverlay(g, k, camX, camY) {
 const cv = document.getElementById("cv");
 // 游戏主画布的 2D 上下文。
 const ctx = cv.getContext("2d");
-// 网格显示开关。
-let showGrid = false;
+// 网格默认开启;用户选择持久化到 localStorage。
+let showGrid = true;
+try {
+  const savedGrid = localStorage.getItem("promesst2.showGrid");
+  if (savedGrid === "0" || savedGrid === "1") showGrid = savedGrid === "1";
+} catch (e) {}
 // 视角模式:"map" 为整幅大地图,"room" 为当前房间。
 let viewMode = "map";
 // 调试开关:关闭后 getLightFlicker() 固定返回 1,光束不再闪烁。

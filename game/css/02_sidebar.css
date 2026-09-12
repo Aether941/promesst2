@@ -207,8 +207,30 @@ label.chk:has(input:checked) {
   color: #fff;
   box-shadow: 0 0 0 3px rgba(176, 124, 255, 0.06);
 }
-label.chk input {
-  accent-color: var(--accent);
+label.chk input[type="checkbox"] {
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 5px;
+  background: #05070c;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+label.chk input[type="checkbox"]:checked {
+  background: linear-gradient(180deg, var(--accent), #7c5cff);
+  border-color: rgba(176, 124, 255, 0.9);
+  box-shadow:
+    0 0 0 3px rgba(176, 124, 255, 0.12),
+    0 0 12px rgba(176, 124, 255, 0.35);
+}
+label.chk input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 #selFps {
   min-height: 28px;
@@ -248,7 +270,8 @@ label.chk input {
     box-shadow 0.15s ease;
 }
 .lamp.on {
-  color: #fff;
+  filter: brightness(1.12);
+  text-shadow: 0 0 10px currentColor;
 }
 .lamp.on.c0 {
   background: #5a1414;
@@ -257,7 +280,6 @@ label.chk input {
 .lamp.used.c0 {
   background: #2a1414;
   border-color: #5a2a2a;
-  color: #98a0b4;
 }
 .lamp.on.c1 {
   background: #144a1c;
@@ -266,7 +288,6 @@ label.chk input {
 .lamp.used.c1 {
   background: #12240f;
   border-color: #2a5a2a;
-  color: #98a0b4;
 }
 .lamp.on.c4 {
   background: #4a4410;
@@ -275,7 +296,6 @@ label.chk input {
 .lamp.used.c4 {
   background: #241f0c;
   border-color: #5a5220;
-  color: #98a0b4;
 }
 .lamp.on.c3 {
   background: #4a2a10;
@@ -284,7 +304,6 @@ label.chk input {
 .lamp.used.c3 {
   background: #241a0c;
   border-color: #5a3a20;
-  color: #98a0b4;
 }
 .lamp.on.c5 {
   background: #331a4a;
@@ -293,7 +312,24 @@ label.chk input {
 .lamp.used.c5 {
   background: #1d1230;
   border-color: #4a2a6a;
-  color: #98a0b4;
+}
+.lamp.used {
+  opacity: 0.62;
+}
+.lamp.c0 {
+  color: #ff6b6b;
+}
+.lamp.c1 {
+  color: #59e06a;
+}
+.lamp.c4 {
+  color: #ffe66d;
+}
+.lamp.c3 {
+  color: #ff9d5c;
+}
+.lamp.c5 {
+  color: #b07cff;
 }
 
 kbd {

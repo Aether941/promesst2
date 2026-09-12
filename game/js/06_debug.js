@@ -8,6 +8,8 @@ let noclip = false,
   debugOn = false;
 let skipLogoMenu = false;
 try {
+  const savedDebug = localStorage.getItem("promesst2.debugOn");
+  if (savedDebug === "0" || savedDebug === "1") debugOn = savedDebug === "1";
   skipLogoMenu = localStorage.getItem("promesst2.skipLogoMenu") === "1";
 } catch (e) {}
 let dbgMsg = "移动判定:—"; // 面板显示文本
@@ -140,13 +142,6 @@ function cheatWand() {
   game.has_wand = true;
   game.num_gems = 30;
 }
-/**
- * 功能:调试:切换穿墙模式。
- */
-function cheatNoclip() {
-  noclip = !noclip;
-}
-
 // 目标格分类(参数为 **列cx, 行cy**,与 world.tile[z][cy][cx] 一致;能力已内联判定)
 /**
  * 功能:判定目标格是否可走、需要开门或需要碎石。
@@ -174,7 +169,6 @@ globalThis.dbgStart = dbgStart;
 globalThis.dbgAdd = dbgAdd;
 globalThis.dbgFinish = dbgFinish;
 globalThis.cheatWand = cheatWand;
-globalThis.cheatNoclip = cheatNoclip;
 globalThis.cellKind = cellKind;
 Object.defineProperty(globalThis, "noclip", {
   configurable: true,

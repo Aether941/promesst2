@@ -114,12 +114,21 @@ byId("btnAgain").addEventListener("click", function () {
 byId("btnResultMenu").addEventListener("click", function () {
   setMode("menu");
 });
+byId("ckGrid").checked = !!showGrid;
 byId("ckGrid").addEventListener("change", function (e) {
   showGrid = e.target.checked;
+  try {
+    localStorage.setItem("promesst2.showGrid", showGrid ? "1" : "0");
+  } catch (e) {}
 });
+byId("ckDbg").checked = !!debugOn;
+byId("dbgrow").style.display = debugOn ? "block" : "none";
 byId("ckDbg").addEventListener("change", function (e) {
   debugOn = e.target.checked;
   byId("dbgrow").style.display = debugOn ? "block" : "none";
+  try {
+    localStorage.setItem("promesst2.debugOn", debugOn ? "1" : "0");
+  } catch (e) {}
 });
 byId("ckSkipBoot").checked = !!skipLogoMenu;
 byId("ckSkipBoot").addEventListener("change", function (e) {
@@ -135,6 +144,10 @@ byId("ckLightFlicker").addEventListener("change", function (e) {
   try {
     localStorage.setItem("promesst2.lightFlicker", lightFlickerEnabled ? "1" : "0");
   } catch (e) {}
+});
+byId("ckNoclip").checked = !!noclip;
+byId("ckNoclip").addEventListener("change", function (e) {
+  noclip = e.target.checked;
 });
 byId("dbgWand").addEventListener("click", function () {
   cheatWand();
@@ -179,10 +192,7 @@ byId("dbgCopy").addEventListener("click", function () {
     }
   }
 });
-byId("dbgNoclip").addEventListener("click", function () {
-  cheatNoclip();
-  byId("dbgNoclipState").textContent = "穿墙:" + (noclip ? "开" : "关");
-});
+
 window.addEventListener("resize", function () {
   resizeCanvas();
 });
