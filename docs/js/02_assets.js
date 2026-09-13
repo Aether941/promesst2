@@ -72,6 +72,35 @@ function tintedCell(s, t, color) {
 }
 
 // 用精灵表内置字体写文本(移植 draw_text L1691–1705)
+// 彩色精灵缓存。动态彩虹色会产生大量颜色键，限制容量避免长期运行持续增长。
+const tintedSubCache = new Map();
+const TINTED_SUB_CACHE_MAX = 512;
+
+/**
+ * 功能:按指定颜色给精灵表中的矩形区域着色,带容量上限缓存。
+ * @param {*} sx 源图 x
+ * @param {*} sy 源图 y
+ * @param {*} sw 源图宽
+ * @param {*} sh 源图高
+ * @param {*} color [r,g,b] 0-255
+ */
+function tintedSubimage(sx, sy, sw, sh, color) {
+  const key = `${sx},${sy},${sw},${sh},${color[0]},${color[1]},${color[2]}`;
+  let c = tintedSubCache.get(key);
+  if (c) return c;
+  if (tintedSubCache.size >= TINTED_SUB_CACHE_MAX) tintedSubCache.clear();
+  c = document.createElement("canvas");
+  c.width = sw;
+  c.height = sh;
+  const g = c.getContext("2d");
+  g.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+  g.fillRect(0, 0, sw, sh);
+  tintedSubCache.set(key, c);
+  return c;
+}
+
 /**
  * 功能:用原版内置位图字体在 canvas 上绘制文本,返回绘制结束后的 x 坐标。
  * @param {*} g
@@ -80,15 +109,17 @@ function tintedCell(s, t, color) {
  * @param {*} size
  * @param {*} text
  * @param {*} spacing
+ * @param {*} [color] 可选 [r,g,b];传入时按原版 glColor 方式给字形着色
  */
-function drawBmpText(g, x, y, size, text, spacing) {
+function drawBmpText(g, x, y, size, text, spacing, color) {
   spacing = spacing || 0;
   for (let i = 0; i < text.length; i++) {
     const idx = FONT.indexOf(text.charAt(i));
     if (idx < 0) continue;
     const sx = 1 + (idx % 21) * 6,
       sy = 113 + Math.floor(idx / 21) * 8;
-    g.drawImage(img, sx, sy, 5, 7, x, y, size * 5, size * 7);
+    if (color) g.drawImage(tintedSubimage(sx, sy, 5, 7, color), x, y, size * 5, size * 7);
+    else g.drawImage(img, sx, sy, 5, 7, x, y, size * 5, size * 7);
     x += size * (FSIZE[idx] + 1 + spacing);
   }
   return x;
@@ -114,6 +145,7 @@ globalThis.sample = sample;
 globalThis.computePowers = computePowers;
 globalThis.cellFrom = cellFrom;
 globalThis.tintedCell = tintedCell;
+globalThis.tintedSubimage = tintedSubimage;
 globalThis.drawBmpText = drawBmpText;
 globalThis.bmpTextWidth = bmpTextWidth;
 globalThis.RAW = RAW;

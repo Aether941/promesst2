@@ -5,6 +5,48 @@
 
 // ---------- 结局/蜥蜴化/气泡(YOU WIN 等世界内文字用原版内置字体) ----------
 /**
+ * 功能:将网页真实毫秒的 animcycle 换算成原版游戏时钟。
+ * 原版 loopmode 每帧对 animcycle 加两次 dt*1000,等价于 2x 实际时间。
+ */
+function cAnimCycle() {
+  return Math.floor(animcycle / 16) * 32;
+}
+
+function clamp01(v) {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
+/**
+ * 功能:复刻原版蜥蜴/气泡的彩虹色计算 (main.c L2039-2059 / L2144-2157)。
+ * @param {number} weight 0-1
+ * @param {number} cycle 原版 animcycle 单位
+ * @param {boolean} [dragon] 原版小龙的灰度化后处理
+ */
+function computeSpeechColor(weight, cycle, dragon) {
+  const t = Math.sin(cycle / 120.0) / 2 + 0.5;
+  const sat = (0.5 + t * 0.4) * weight;
+  let lum = (Math.sin(cycle / 33.0) / 2 + 0.5) / 2 + 0.5;
+  lum = 1 + weight * (lum - 1);
+  const hue = (cycle / 77.0) % 3;
+  let r = 1 - clamp01(Math.abs(hue - 1));
+  let g = 1 - clamp01(Math.abs(hue - 2));
+  let b = 1 - clamp01(Math.abs(hue - 3)) + 1 - clamp01(hue);
+  r = (1 + sat * (r - 1)) * (lum / 2 + 0.5);
+  g = (1 + sat * (g - 1)) * lum;
+  b = (1 + sat * (b - 1)) * (lum / 2 + 0.5);
+  if (dragon) {
+    // 原版 L2057-2059:小龙颜色在彩虹色后再做一次灰度化。
+    r = (r + 1) / 2;
+    g = (r + 1) / 2;
+    b = (r + 1) / 2;
+  }
+  return [
+    Math.round(Math.max(0, Math.min(1, r)) * 255),
+    Math.round(Math.max(0, Math.min(1, g)) * 255),
+    Math.round(Math.max(0, Math.min(1, b)) * 255),
+  ];
+}
+/**
  * 功能:绘制 rover 彩虹/气泡、闪白和 YOU WIN 结局文字。
  * @param {*} g
  * @param {*} k
@@ -38,7 +80,14 @@ function drawEndingOverlay(g, k, camX, camY) {
     const ox = rx + K / 4;
     const oy = ry + K / 4;
     if (game.egg_timer <= 3000) {
-      g.drawImage(cellFrom(6, 5), ox, oy, K, K);
+      const dragonColor = computeSpeechColor(game.egg_timer / 3000, cAnimCycle(), true);
+      g.drawImage(
+        tintedSubimage(6 * CELL, 5 * CELL, CELL, CELL, dragonColor),
+        ox,
+        oy,
+        K,
+        K,
+      );
     } else {
       const scale = Math.min(1, (game.egg_timer - 3000) / 3000) / 2 + 0.5;
       const size = 2 * K * scale;
@@ -58,29 +107,29 @@ function drawEndingOverlay(g, k, camX, camY) {
     ((rover.y / SY) | 0) === 3 &&
     game.gems_stored >= 0
   ) {
+    const cycle = cAnimCycle();
+    const speechColor = computeSpeechColor(game.gems_stored / MAX_GEMS, cycle);
     if (game.gems_stored === 0) {
-      if (animcycle % 15000 < 2000) {
-        g.drawImage(img, 80, 96, 32, 16, rx + K / 2, ry + K / 8, 2 * K, K);
+      if (cycle % 15000 < 2000) {
+        g.drawImage(
+          tintedSubimage(80, 96, 32, 16, speechColor),
+          rx + K / 2,
+          ry + K / 8,
+          2 * K,
+          K,
+        );
       }
-    } else {
-      let text = null;
-      if (game.egg_timer >= 8000) text = "WELL NOW";
-      else if (animcycle % 45000 < 2000 || feed_timer > 0) {
-        const left = MAX_GEMS - game.gems_stored;
-        if (game.gems_stored >= 1 && game.gems_stored <= 12) text = "NEED MORE";
-        else if (game.gems_stored % 7 === 3) text = `${left} TO GO`;
-        else text = `${left} MORE`;
-      }
-      if (text) {
-        const size = Math.max(0.9, k * 0.55);
-        const w = bmpTextWidth(size, text, 1);
-        g.save();
-        g.fillStyle = "rgba(0,0,0,0.55)";
-        g.fillRect(rx + K / 2 - w / 2 - 3, ry - size * 10 - 3, w + 6, size * 9 + 6);
-        g.fillStyle = "#ffffff";
-        drawBmpText(g, rx + K / 2 - w / 2, ry - size * 10, size, text, 1);
-        g.restore();
-      }
+    } else if (game.egg_timer >= 8000) {
+      // 原版在 WELL NOW 前把颜色重置为白色。
+      drawBmpText(g, rx - 6 * k, ry + 36 * k, k, "WELL NOW", 1);
+    } else if (cycle % 45000 < 2000 || feed_timer > 0) {
+      const left = MAX_GEMS - game.gems_stored;
+      let text;
+      if (game.gems_stored >= 1 && game.gems_stored <= 12) text = "NEED MORE";
+      else if (game.gems_stored % 7 === 3) text = `${left} TO GO`;
+      else text = `${left} MORE`;
+      // 原版逻辑坐标:x*16+16, y*16+2,字号 1(即每格 16 逻辑像素)。
+      drawBmpText(g, rx + K, ry + K / 8, k, text, 1, speechColor);
     }
   }
   if (game.egg_timer > 8000) {
@@ -270,11 +319,24 @@ function render() {
         case O.refl:
           oc = cellFrom(5 + o.dir, 6);
           break;
-        case O.rover:
+        case O.rover: {
           // Fed rover is drawn by drawEndingOverlay as the lizard/dragon.
           if (game.egg_timer > 0) continue;
-          oc = cellFrom(6, 2 + o.dir);
-          break;
+          // 原版 draw_world L1970-1990:静止时用 (mx^my)&1 选帧;
+          // 每次移动后的前 1/4 拍做插值,并临时改用 animcycle 选帧。
+          let ds = (x ^ y) & 1;
+          let rox = x * K,
+            roy = y * K;
+          const rt = rover_timer - Math.floor((ROVER_MS * 3) / 4);
+          if (rt > 0) {
+            ds = Math.floor(cAnimCycle() / 256) % 2;
+            const step = Math.floor(ROVER_MS / 4);
+            rox += Math.trunc((-XD[o.dir] * CELL * rt) / step) * k;
+            roy += Math.trunc((-YD[o.dir] * CELL * rt) / step) * k;
+          }
+          ctx.drawImage(cellFrom(6 + ds, 2 + o.dir), rox, roy, K, K);
+          continue;
+        }
         case O.stone:
           oc = cellFrom(2, 1);
           break;
