@@ -166,7 +166,6 @@ function enterResult() {
   lastSnap = buildSnap(); // 保存真正的通关状态,并保留完整撤销历史
   scheduleSave();
   byId("resZaps").textContent = `USED ${game.num_zaps} ZAPS`;
-  byId("resFed").textContent = `已喂宝石 ${game.gems_stored}/${MAX_GEMS}`;
   setMode("result");
 }
 
