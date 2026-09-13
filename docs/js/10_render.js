@@ -16,6 +16,16 @@ function clamp01(v) {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
 
+// 房间视图下原版有 140x104 的视口边距；网页版房间视图是 6x6 满画布，
+// 所以气泡贴近右/下边缘时要做可见性夹取，避免直接落到 canvas 外。
+function clampBubbleX(x, w) {
+  return Math.max(0, Math.min(x, cv.width - w));
+}
+
+function clampBubbleY(y, h) {
+  return Math.max(0, Math.min(y, cv.height - h));
+}
+
 /**
  * 功能:复刻原版蜥蜴/气泡的彩虹色计算 (main.c L2039-2059 / L2144-2157)。
  * @param {number} weight 0-1
@@ -111,17 +121,27 @@ function drawEndingOverlay(g, k, camX, camY) {
     const speechColor = computeSpeechColor(game.gems_stored / MAX_GEMS, cycle);
     if (game.gems_stored === 0) {
       if (cycle % 15000 < 2000) {
+        const bw = 2 * K,
+          bh = K;
         g.drawImage(
           tintedSubimage(80, 96, 32, 16, speechColor),
-          rx + K / 2,
-          ry + K / 8,
-          2 * K,
-          K,
+          clampBubbleX(rx + K / 2, bw),
+          clampBubbleY(ry + K / 8, bh),
+          bw,
+          bh,
         );
       }
     } else if (game.egg_timer >= 8000) {
       // 原版在 WELL NOW 前把颜色重置为白色。
-      drawBmpText(g, rx - 6 * k, ry + 36 * k, k, "WELL NOW", 1);
+      const w = bmpTextWidth(k, "WELL NOW", 1);
+      drawBmpText(
+        g,
+        clampBubbleX(rx - 6 * k, w),
+        clampBubbleY(ry + 36 * k, 7 * k),
+        k,
+        "WELL NOW",
+        1,
+      );
     } else if (cycle % 45000 < 2000 || feed_timer > 0) {
       const left = MAX_GEMS - game.gems_stored;
       let text;
@@ -129,7 +149,16 @@ function drawEndingOverlay(g, k, camX, camY) {
       else if (game.gems_stored % 7 === 3) text = `${left} TO GO`;
       else text = `${left} MORE`;
       // 原版逻辑坐标:x*16+16, y*16+2,字号 1(即每格 16 逻辑像素)。
-      drawBmpText(g, rx + K, ry + K / 8, k, text, 1, speechColor);
+      const w = bmpTextWidth(k, text, 1);
+      drawBmpText(
+        g,
+        clampBubbleX(rx + K, w),
+        clampBubbleY(ry + K / 8, 7 * k),
+        k,
+        text,
+        1,
+        speechColor,
+      );
     }
   }
   if (game.egg_timer > 8000) {
