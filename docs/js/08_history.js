@@ -6,7 +6,8 @@
 // ---------- M5:差分撤销(一次性,无上限)+ IndexedDB 跨会话持久化 ----------
 let HISTORY = []; // 条目 {diffs:[{k,i,old,new}], pre:{player,t}}
 let lastSnap = null; // 最近一次提交后的完整状态(用于差分)
-let ckptSnap = null; // 魔杖快照(菜单“从 wand 恢复”用,M6)
+let ckptSnap = null;
+let replayClear = false; // 魔杖快照(菜单“从 wand 恢复”用,M6)
 // IndexedDB 数据库连接;saveTimer 为自动保存防抖计时器。
 let DB = null,
   saveTimer = null;
@@ -185,11 +186,13 @@ function sameP(a, b) {
     a.pdir === b.pdir &&
     a.flag === b.flag &&
     a.gems === b.gems &&
+    a.fed === b.fed &&
+    a.egg === b.egg &&
     a.wand === b.wand &&
     a.zaps === b.zaps
   );
 }
-// 注:fed(rover 吃宝石)/egg 不计入历史,撤销不回滚;rover 状态完全独立于撤销
+// 注:rover 的移动/朝向/计时器不入历史,但 fed/egg 会随玩家状态进入撤销历史。
 /**
  * 功能:rover 计时器永远返回 false,表示不参与撤销历史。
  * @param {*} a
@@ -201,7 +204,7 @@ function sameT(a, b) {
 /**
  * 功能:把最近一次变化提交到撤销历史,并按需触发自动保存。
  */
-function commitHistory() {
+function commitHistory(feedCells) {
   // 实现:比较最近快照,若有变化则压入历史并触发自动保存。
   if (!lastSnap) return;
   const cur = buildSnap();
@@ -211,24 +214,40 @@ function commitHistory() {
     lastSnap = cur;
     return;
   } // 真正 no-op
-  HISTORY.push({ diffs: diffs, pre: { player: lastSnap.player, t: lastSnap.t } });
+  HISTORY.push({
+    diffs: diffs,
+    pre: { player: lastSnap.player, t: lastSnap.t },
+    feed: feedCells && feedCells.length ? feedCells : null,
+  });
   lastSnap = cur;
   scheduleSave();
 }
 // Z 键撤销:回滚“玩家可影响”的改动;rover 完全独立(不入历史、不重置、持续自主移动)
 /**
- * 功能:撤销上一次玩家可影响的变化,rover 状态不回滚。
+ * 功能:撤销上一次变化,恢复玩家状态与喂食/结局计时;rover 位置/朝向/计时器保持当前值。
  */
 function undo() {
-  // 实现:弹出最近历史,用差分回滚世界格和玩家状态,但保留喂食/结局计时。
+  // 实现:弹出最近历史,用差分回滚世界格和玩家状态(含 fed/egg)。
   if (!HISTORY.length) return;
   const e = HISTORY.pop();
-  const keepFed = game.gems_stored,
-    keepEgg = game.egg_timer;
   for (let i = 0; i < e.diffs.length; i++) applyDiffWorld(e.diffs[i], true);
   applyP(e.pre.player);
-  game.gems_stored = keepFed;
-  game.egg_timer = keepEgg; // rover 计数不回滚
+  if (e.feed) {
+    for (let i = 0; i < e.feed.length; i++) {
+      const f = e.feed[i];
+      const o = world.obj[f.z][f.y][f.x];
+      if (o.type === O.rover && world.obj[f.z][f.fromY][f.fromX].type === O.empty) {
+        world.obj[f.z][f.fromY][f.fromX].type = O.rover;
+        world.obj[f.z][f.fromY][f.fromX].dir = o.dir;
+        o.type = O.empty;
+      }
+      o.type = O.gem;
+      o.dir = typeof f.dir === "number" ? f.dir : 0;
+      o.color = 0;
+    }
+  }
+  replayClear = false;
+  if (game.gems_stored < MAX_GEMS) clearedFlag = false;
   game.player_timer = 0;
   animMove = false;
   lightDirty = true;
@@ -368,8 +387,10 @@ function restoreSave(d) {
   if (d.meta && typeof d.meta.steps === "number") game.steps = d.meta.steps;
   HISTORY = (d.h || []).slice();
   ckptSnap = d.ck || null;
-  clearedFlag = !!(d.meta && d.meta.cleared);
-  if (clearedFlag) game.egg_timer = 0; // 通关档读入后不再自动重播结算
+  const wasCleared = !!(d.meta && d.meta.cleared);
+  clearedFlag = wasCleared;
+  replayClear = wasCleared;
+  if (wasCleared) game.egg_timer = 0; // 通关档读入后不再自动重播结算
   lastSnap = buildSnap();
 }
 window.addEventListener("pagehide", function () {
@@ -431,6 +452,15 @@ Object.defineProperty(globalThis, "HISTORY", {
   },
   set(value) {
     HISTORY = value;
+  },
+});
+Object.defineProperty(globalThis, "replayClear", {
+  configurable: true,
+  get() {
+    return replayClear;
+  },
+  set(value) {
+    replayClear = value;
   },
 });
 Object.defineProperty(globalThis, "lastSnap", {

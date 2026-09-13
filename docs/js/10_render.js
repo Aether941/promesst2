@@ -133,7 +133,7 @@ function drawEndingOverlay(g, k, camX, camY) {
       }
       g.restore();
     }
-    if (game.egg_timer > 22000 && !globalThis.clearedFlag) enterResult();
+    if (game.egg_timer > 22000 && (!globalThis.clearedFlag || globalThis.replayClear)) enterResult();
   }
 }
 

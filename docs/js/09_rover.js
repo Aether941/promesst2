@@ -13,6 +13,8 @@
  * @param {*} cy
  * @param {*} allowGem
  */
+let pendingFeeds = [];
+
 function roverCanEnter(z, cx, cy, allowGem) {
   if (cx < 0 || cx >= WW || cy < 0 || cy >= WH) return false;
   const t = world.tile[z][cy][cx];
@@ -108,6 +110,7 @@ function moveRovers(roomX, roomY) {
   const z = game.pz;
   const rx = roomX * SX,
     ry = roomY * SY;
+  let ateGem = false;
 
   // 1) 让每只 rover 先声明想去哪,并记录到冲突表 occupied。
   const occupied = [];
@@ -162,10 +165,15 @@ function moveRovers(roomX, roomY) {
         // 原版只检查目标是否是 rover;若另一只 rover 正在离开,本轮先等待。
         if (target.type >= O.rover) continue;
 
+        const fromX = rx + r.s,
+          fromY = ry + r.t;
+
         if (target.type === O.gem) {
           game.gems_stored++;
           feed_timer = FEED_MS;
           reverse_timer = REVERSE_MS;
+          pendingFeeds.push({ z: z, x: tx, y: ty, fromX: fromX, fromY: fromY, dir: target.dir });
+          ateGem = true;
         }
 
         world.obj[z][ry + r.t][rx + r.s].type = O.empty;
@@ -180,6 +188,7 @@ function moveRovers(roomX, roomY) {
   }
 
   if (reverse_timer === 0 && rovers.length) reverse_timer = -1;
+  return ateGem;
 }
 
 /**
@@ -187,8 +196,14 @@ function moveRovers(roomX, roomY) {
  *      每个房间独立调用 moveRovers(),因此 rover 不会跨房间。
  */
 function stepRovers() {
+  pendingFeeds = [];
   for (let ry = 0; ry < NY; ry++)
     for (let rx = 0; rx < NX; rx++) moveRovers(rx, ry);
+  if (pendingFeeds.length && typeof globalThis.commitHistory === "function") {
+    const feeds = pendingFeeds;
+    pendingFeeds = [];
+    globalThis.commitHistory(feeds);
+  }
 }
 
 // ---------- 计时器步进(移植 timestep,L1237-1325:M3 能力 + M4 rover/宝石) ----------
@@ -257,7 +272,7 @@ function update(ms) {
   }
 
   // 集满 30 颗后累计 egg_timer,驱动结局动画(照 C L1322-1324;必须与是否有输入无关)
-  if (game.gems_stored >= MAX_GEMS && !globalThis.clearedFlag) {
+  if (game.gems_stored >= MAX_GEMS && (!globalThis.clearedFlag || globalThis.replayClear)) {
     game.egg_timer += ms;
   }
   updateDebugCharges(ms);

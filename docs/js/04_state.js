@@ -82,6 +82,7 @@ function reset() {
   game.has_wand = false;
   game.num_zaps = 0;
   game.egg_timer = 0;
+  if (typeof globalThis.replayClear !== "undefined") globalThis.replayClear = false;
   game.steps = 0;
   q = null;
   held = [];

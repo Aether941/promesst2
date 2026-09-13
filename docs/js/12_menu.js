@@ -161,6 +161,7 @@ function enterResult() {
   // rendered behind the menu would immediately pull us back to result.
   if (mainMode !== "game") return;
   clearedFlag = true;
+  globalThis.replayClear = false;
   game.egg_timer = 0;
   lastSnap = buildSnap(); // 保存真正的通关状态,并保留完整撤销历史
   scheduleSave();
